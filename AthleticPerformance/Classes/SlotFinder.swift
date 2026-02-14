@@ -11,7 +11,7 @@ final class SlotFinder {
     func findClusteredSlot(
         currentDate: Date,
         context: SessionPlanningContext,
-        therapistId: Int,
+        therapistId: UUID,
         sessionsToday: [TreatmentSessions]
     ) async -> Date? {
         let sessionDurationSec = context.sessionDuration * 60

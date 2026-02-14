@@ -10,7 +10,7 @@ import Foundation
 struct PreTreatmentDocumentation: Identifiable, Codable, Hashable {
     var id: UUID // = UUID()
     var date: Date                          // Datum der Dokumentation
-    var therapistId: Int                    // Wer hat die Aufklärung durchgeführt
+    var therapistId: UUID                   // Wer hat die Aufklärung durchgeführt
 
     // 🔹 Zielsetzung der Therapie
     var therapyGoals: String                // Beschreibung der Ziele
@@ -30,10 +30,36 @@ struct PreTreatmentDocumentation: Identifiable, Codable, Hashable {
     var signatureFile: MediaFile?
 
     var additionalNotes: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, date, therapistId, therapyGoals, expectedOutcomes,
+             topicsDiscussed, patientQuestions, answersProvided,
+             risksDiscussed, patientUnderstood, contractGiven,
+             contractDate, contractLocation, signatureFile, additionalNotes
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        date = try container.decode(Date.self, forKey: .date)
+        therapistId = try decodeTherapistId(from: container, forKey: .therapistId)
+        therapyGoals = try container.decode(String.self, forKey: .therapyGoals)
+        expectedOutcomes = try container.decodeIfPresent(String.self, forKey: .expectedOutcomes)
+        topicsDiscussed = try container.decode([String].self, forKey: .topicsDiscussed)
+        patientQuestions = try container.decodeIfPresent(String.self, forKey: .patientQuestions)
+        answersProvided = try container.decodeIfPresent(String.self, forKey: .answersProvided)
+        risksDiscussed = try container.decode(Bool.self, forKey: .risksDiscussed)
+        patientUnderstood = try container.decode(Bool.self, forKey: .patientUnderstood)
+        contractGiven = try container.decode(Bool.self, forKey: .contractGiven)
+        contractDate = try container.decodeIfPresent(Date.self, forKey: .contractDate)
+        contractLocation = try container.decodeIfPresent(String.self, forKey: .contractLocation)
+        signatureFile = try container.decodeIfPresent(MediaFile.self, forKey: .signatureFile)
+        additionalNotes = try container.decodeIfPresent(String.self, forKey: .additionalNotes)
+    }
 }
 
 extension PreTreatmentDocumentation {
-    static func empty(therapistId: Int) -> PreTreatmentDocumentation {
+    static func empty(therapistId: UUID) -> PreTreatmentDocumentation {
         PreTreatmentDocumentation(
             id: UUID(),
             date: Date(),

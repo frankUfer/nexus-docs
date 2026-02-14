@@ -12,7 +12,7 @@ import Foundation
 /// Represents a patient's anamnesis, including medical history and lifestyle information.
 struct Anamnesis: Codable, Equatable, Hashable {
     /// Optional ID of the therapist who recorded the anamnesis.
-    var therapistId: Int? = nil
+    var therapistId: UUID? = nil
 
     /// The patient's medical history.
     var medicalHistory: MedicalHistory
@@ -20,10 +20,27 @@ struct Anamnesis: Codable, Equatable, Hashable {
     /// The patient's lifestyle information.
     var lifestyle: Lifestyle
 
+    enum CodingKeys: String, CodingKey {
+        case therapistId, medicalHistory, lifestyle
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        therapistId = try decodeOptionalTherapistId(from: container, forKey: .therapistId)
+        medicalHistory = try container.decode(MedicalHistory.self, forKey: .medicalHistory)
+        lifestyle = try container.decode(Lifestyle.self, forKey: .lifestyle)
+    }
+
+    init(therapistId: UUID? = nil, medicalHistory: MedicalHistory, lifestyle: Lifestyle) {
+        self.therapistId = therapistId
+        self.medicalHistory = medicalHistory
+        self.lifestyle = lifestyle
+    }
+
     /// Creates an empty `Anamnesis` instance with default values.
     /// - Parameter therapistId: Optional therapist ID to assign.
     /// - Returns: An empty `Anamnesis` object.
-    static func empty(therapistId: Int? = nil) -> Anamnesis {
+    static func empty(therapistId: UUID? = nil) -> Anamnesis {
         Anamnesis(
             therapistId: therapistId,
             medicalHistory: MedicalHistory(

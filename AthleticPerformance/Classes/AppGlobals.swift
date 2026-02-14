@@ -44,7 +44,7 @@ class AppGlobals: ObservableObject {
     var travelBuffer: Int = 15
     var insuranceList: [InsuranceCompany] = []
     var therapistList: [Therapists] = []
-    var therapistId: Int? = nil
+    var therapistId: UUID? = nil
     var treatmentServices: [TreatmentService] = []
     var specialties: [Specialty] = []
     var physioReferenceData: PhysioReferenceData = .empty

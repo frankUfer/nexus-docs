@@ -11,7 +11,7 @@ func generateTreatmentProposals(
     plan: TherapyPlan,
     services: [TreatmentService],
     patientAddress: Address,
-    therapistId: Int,
+    therapistId: UUID,
     therapistAvailability: [AvailabilitySlot],
     ownSessions: [TreatmentSessions],
     otherSessions: [TreatmentSessions],

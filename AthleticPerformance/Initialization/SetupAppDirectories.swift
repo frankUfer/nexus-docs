@@ -44,29 +44,32 @@ func setupAppDirectories(shouldCopyParameterData: Bool) -> Bool {
     }
 
     if shouldCopyParameterData {
-        // RTF → templates
+        // RTF → templates (always update when bundle is newer)
         success = success && copyResourcesToParameters(
             destinationURL: documentsURL.appendingPathComponent("resources/templates"),
-            withExtensions: ["rtf"]
-        )
-        
-        // TXT → templates
-        success = success && copyResourcesToParameters(
-            destinationURL: documentsURL.appendingPathComponent("resources/templates"),
-            withExtensions: ["txt"]
+            withExtensions: ["rtf"],
+            seedOnly: false
         )
 
-        // JSON → parameter
+        // TXT → templates (always update when bundle is newer)
+        success = success && copyResourcesToParameters(
+            destinationURL: documentsURL.appendingPathComponent("resources/templates"),
+            withExtensions: ["txt"],
+            seedOnly: false
+        )
+
+        // JSON → parameter (seed only: copy if missing, never overwrite)
         success = success && copyResourcesToParameters(
             destinationURL: documentsURL.appendingPathComponent("resources/parameter"),
-            withExtensions: ["json"]
+            withExtensions: ["json"],
+            seedOnly: true
         )
     }
 
     return success
 }
 
-func copyResourcesToParameters(destinationURL: URL, withExtensions extensions: [String]) -> Bool {
+func copyResourcesToParameters(destinationURL: URL, withExtensions extensions: [String], seedOnly: Bool = false) -> Bool {
     let fileManager = FileManager.default
     var success = true
 
@@ -90,33 +93,35 @@ func copyResourcesToParameters(destinationURL: URL, withExtensions extensions: [
             var shouldCopy = false
 
             if fileManager.fileExists(atPath: destinationFileURL.path) {
-                do {
-                    let sourceAttributes = try fileManager.attributesOfItem(atPath: file.path)
-                    let destinationAttributes = try fileManager.attributesOfItem(atPath: destinationFileURL.path)
+                if seedOnly {
+                    // Seed-only mode: never overwrite existing files.
+                    // Sync will deliver updates from the server.
+                    shouldCopy = false
+                } else {
+                    // Template mode: overwrite when bundle version is newer.
+                    do {
+                        let sourceAttributes = try fileManager.attributesOfItem(atPath: file.path)
+                        let destinationAttributes = try fileManager.attributesOfItem(atPath: destinationFileURL.path)
 
-                    if let sourceDate = sourceAttributes[.modificationDate] as? Date,
-                       let destDate = destinationAttributes[.modificationDate] as? Date {
-
-                        if sourceDate > destDate {
-                            shouldCopy = true
+                        if let sourceDate = sourceAttributes[.modificationDate] as? Date,
+                           let destDate = destinationAttributes[.modificationDate] as? Date {
+                            shouldCopy = sourceDate > destDate
+                        } else {
+                            shouldCopy = false
                         }
-                    } else {
-                        // Konnte Datum nicht lesen → sicherheitshalber NICHT kopieren
+                    } catch {
+                        let errorMessage = String(
+                            format: NSLocalizedString("errorComparingFileDates", comment: "Error comparing file dates %@: %@"),
+                            file.lastPathComponent,
+                            error.localizedDescription
+                        )
+                        showErrorAlert(errorMessage: errorMessage)
+                        success = false
                         shouldCopy = false
                     }
-
-                } catch {
-                    let errorMessage = String(
-                        format: NSLocalizedString("errorComparingFileDates", comment: "Error comparing file dates %@: %@"),
-                        file.lastPathComponent,
-                        error.localizedDescription
-                    )
-                    showErrorAlert(errorMessage: errorMessage)
-                    success = false
-                    shouldCopy = false
                 }
             } else {
-                // Ziel existiert nicht → kopieren
+                // Destination doesn't exist → copy (both seed and template mode)
                 shouldCopy = true
             }
 

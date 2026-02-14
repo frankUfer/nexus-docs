@@ -13,6 +13,10 @@ final class PatientStore: ObservableObject {
     static let shared = PatientStore()
     @Published private(set) var patients: [Patient] = []
 
+    /// Callback invoked after a patient is saved. Parameters: (new, old).
+    /// The SyncCoordinator wires this to detect changes and enqueue to the outbound queue.
+    var onPatientChanged: ((Patient, Patient?) -> Void)?
+
     private let baseURL: URL
     private let fileStampFormatter: DateFormatter = {
         let df = DateFormatter()
@@ -80,8 +84,11 @@ final class PatientStore: ObservableObject {
         // 4) Change-Log + Persist
         await handleDetectedChangesAsync(changes, for: newValue.id)
         await savePatientAsync(newValue)
+
+        // 5) Notify sync system
+        onPatientChanged?(newValue, oldDisk)
     }
-            
+
     func updatePatient(_ updated: Patient, waitUntilSaved: Bool = false) {
         let oldDisk = self.loadPatientSync(with: updated.id)
 
@@ -121,6 +128,9 @@ final class PatientStore: ObservableObject {
             savePatientSync(snapshot, baseURL: baseURL)
             //print("✅ [updatePatient] Patient synchron gespeichert: \(snapshot.fullName) (\(snapshot.id))")
 
+            // Notify sync system
+            onPatientChanged?(newValue, oldDisk)
+
         } else {
             Task.detached(priority: .utility) { [baseURL, snapshot, changes] in
 //                if !changes.isEmpty {
@@ -138,6 +148,9 @@ final class PatientStore: ObservableObject {
                 await self.writeChangeLogSync(changes, patientId: snapshot.id, baseURL: baseURL)
                 await self.savePatientAsync(snapshot)
                 //print("✅ [updatePatient async] Patient asynchron gespeichert: \(snapshot.fullName) (\(snapshot.id))")
+
+                // Notify sync system
+                await MainActor.run { self.onPatientChanged?(snapshot, oldDisk) }
             }
         }
     }
@@ -147,6 +160,7 @@ final class PatientStore: ObservableObject {
     func addPatient(_ patient: Patient) async {
         applyPatient(patient)
         await savePatientAsync(patient)
+        onPatientChanged?(patient, nil)
     }
 
     // MARK: - Delete patient
@@ -158,11 +172,13 @@ final class PatientStore: ObservableObject {
     @MainActor
     func togglePatientStatus(for id: UUID) {
         guard let idx = patients.firstIndex(where: { $0.id == id }) else { return }
+        let old = patients[idx]
         var copy = patients
         copy[idx].isActive.toggle()
         let updated = copy[idx]
         patients = copy                      // <- Reassign
         Task { await savePatientAsync(updated) }
+        onPatientChanged?(updated, old)
     }
       
     @MainActor
@@ -354,7 +370,7 @@ extension PatientStore {
         return jsonContainersEqual(ra, rb)
     }
 
-    func diffPatient(old: Patient, new: Patient, therapistId: Int?) -> [FieldChange] {
+    func diffPatient(old: Patient, new: Patient, therapistId: UUID?) -> [FieldChange] {
         let enc = JSONEncoder(); enc.dateEncodingStrategy = .iso8601
         guard
             let dOld = try? enc.encode(old),
@@ -376,7 +392,7 @@ extension PatientStore {
         new: Any?,
         basePath: String,
         out: inout [FieldChange],
-        therapistId: Int?
+        therapistId: UUID?
     ) {
         if let o = old, let n = new, jsonContainersEqual(o, n) { return }
 

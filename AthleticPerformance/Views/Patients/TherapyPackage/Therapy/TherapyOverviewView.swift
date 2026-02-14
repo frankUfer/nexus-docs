@@ -148,7 +148,7 @@ struct TherapyOverviewView: View {
                             if !therapy.isCompleted {
                                 Picker("", selection: $therapy.therapistId) {
                                     ForEach(AppGlobals.shared.therapistList, id: \.id) { therapist in
-                                        Text(therapist.fullName).tag(therapist.id as Int?)
+                                        Text(therapist.fullName).tag(therapist.id as UUID?)
                                     }
                                 }
                                 .pickerStyle(.menu)

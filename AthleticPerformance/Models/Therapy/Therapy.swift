@@ -15,7 +15,7 @@ struct Therapy: Identifiable, Codable, Hashable {
     // MARK: - Meta Information
 
     /// Optional reference to the therapist's ID (`Therapist.id`).
-    var therapistId: Int?
+    var therapistId: UUID?
 
     /// Reference to the patient's unique ID.
     var patientId: UUID
@@ -78,7 +78,7 @@ struct Therapy: Identifiable, Codable, Hashable {
     
     init(
         id: UUID = UUID(),
-        therapistId: Int?,
+        therapistId: UUID?,
         patientId: UUID,
         title: String = "",
         goals: String = "",
@@ -97,7 +97,7 @@ struct Therapy: Identifiable, Codable, Hashable {
         self.endDate = startDate.addingTimeInterval(30 * 24 * 60 * 60)
         self.diagnoses = []
         self.findings = []
-        self.preTreatment = PreTreatmentDocumentation.empty(therapistId: therapistId ?? 1)
+        self.preTreatment = PreTreatmentDocumentation.empty(therapistId: therapistId ?? UUID())
         self.exercises = []
         self.therapyPlans = []
         self.dischargeReport = nil
@@ -105,6 +105,34 @@ struct Therapy: Identifiable, Codable, Hashable {
         self.billingPeriod = billingPeriod
         self.tags = []
         self.isAgreed = false
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, therapistId, patientId, title, goals, risks, startDate, endDate,
+             diagnoses, findings, preTreatment, exercises, therapyPlans,
+             dischargeReport, invoices, billingPeriod, tags, isAgreed
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        therapistId = try decodeOptionalTherapistId(from: container, forKey: .therapistId)
+        patientId = try container.decode(UUID.self, forKey: .patientId)
+        title = try container.decode(String.self, forKey: .title)
+        goals = try container.decodeIfPresent(String.self, forKey: .goals) ?? ""
+        risks = try container.decodeIfPresent(String.self, forKey: .risks) ?? ""
+        startDate = try container.decode(Date.self, forKey: .startDate)
+        endDate = try container.decodeIfPresent(Date.self, forKey: .endDate)
+        diagnoses = try container.decodeIfPresent([Diagnosis].self, forKey: .diagnoses) ?? []
+        findings = try container.decodeIfPresent([Finding].self, forKey: .findings) ?? []
+        preTreatment = try container.decode(PreTreatmentDocumentation.self, forKey: .preTreatment)
+        exercises = try container.decodeIfPresent([Exercise].self, forKey: .exercises) ?? []
+        therapyPlans = try container.decodeIfPresent([TherapyPlan].self, forKey: .therapyPlans) ?? []
+        dischargeReport = try container.decodeIfPresent(DischargeReport.self, forKey: .dischargeReport)
+        invoices = try container.decodeIfPresent([Invoice].self, forKey: .invoices) ?? []
+        billingPeriod = try container.decode(BillingPeriod.self, forKey: .billingPeriod)
+        tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
+        isAgreed = try container.decodeIfPresent(Bool.self, forKey: .isAgreed) ?? false
     }
 }
 

@@ -10,7 +10,7 @@ import Foundation
 struct TherapyPlan: Identifiable, Codable, Hashable {
     var id: UUID
     var diagnosisId: UUID?
-    var therapistId: Int?
+    var therapistId: UUID?
     var title: String? = nil {
         didSet {
             propagateTitleChange()
@@ -46,7 +46,7 @@ struct TherapyPlan: Identifiable, Codable, Hashable {
     init(
         id: UUID = UUID(),
         diagnosisId: UUID? = nil,
-        therapistId: Int?,
+        therapistId: UUID?,
         title: String = "",
         treatmentServiceIds: [UUID] = [],
         frequency: TherapyFrequency? = .weekly,
@@ -77,7 +77,26 @@ struct TherapyPlan: Identifiable, Codable, Hashable {
         // Initiale Durchnummerierung
          renumberSessions()
     }
-    
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        diagnosisId = try container.decodeIfPresent(UUID.self, forKey: .diagnosisId)
+        therapistId = try decodeOptionalTherapistId(from: container, forKey: .therapistId)
+        title = try container.decodeIfPresent(String.self, forKey: .title)
+        treatmentServiceIds = try container.decodeIfPresent([UUID].self, forKey: .treatmentServiceIds) ?? []
+        frequency = try container.decodeIfPresent(TherapyFrequency.self, forKey: .frequency)
+        preferredTimeOfDay = try container.decodeIfPresent(TimeOfDay.self, forKey: .preferredTimeOfDay)
+        weekdays = try container.decodeIfPresent([Weekday].self, forKey: .weekdays)
+        startDate = try container.decodeIfPresent(Date.self, forKey: .startDate)
+        numberOfSessions = try container.decode(Int.self, forKey: .numberOfSessions)
+        treatmentSessions = try container.decodeIfPresent([TreatmentSessions].self, forKey: .treatmentSessions) ?? []
+        sessionDocs = try container.decodeIfPresent([TherapySessionDocumentation].self, forKey: .sessionDocs) ?? []
+        addressId = try container.decodeIfPresent(UUID.self, forKey: .addressId)
+        isCompleted = try container.decodeIfPresent(Bool.self, forKey: .isCompleted) ?? false
+        renumberSessions()
+    }
+
     // NEU: zentrale Nummerierungslogik
     mutating func renumberSessions() {
         if _isRenumbering { return }

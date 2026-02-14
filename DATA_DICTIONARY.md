@@ -125,7 +125,7 @@ Master data entities — primarily patients.
 |----------------|--------------|--------------------------|
 | entity_key     | SERIAL       | Surrogate key (PK)      |
 | entity_id      | UUID         | Natural key              |
-| entity_type    | TEXT         | 'patient', 'contact'    |
+| entity_type    | TEXT         | 'patient', 'contact', 'invoice', 'availability' |
 | patient_id     | UUID         | Self-ref for patients, parent for contacts |
 | display_name   | TEXT         | Full name or label       |
 | data           | JSONB        | Structured entity attributes |
@@ -156,7 +156,7 @@ Core transactional data — therapy sessions, assessments.
 | device_key        | INTEGER      | FK → dim_device        |
 | entity_key        | INTEGER      | FK → dim_entity (patient)|
 | source_key        | INTEGER      | FK → dim_source        |
-| transaction_type  | TEXT         | 'session', 'assessment'|
+| transaction_type  | TEXT         | 'session', 'assessment', 'invoice', 'availability' |
 | data              | JSONB        | Session/assessment details |
 | created_at        | TIMESTAMPTZ  |                         |
 

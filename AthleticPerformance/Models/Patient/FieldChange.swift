@@ -5,12 +5,14 @@
 //  Created by Frank Ufer on 01.10.25.
 //
 
+import Foundation
+
 /// Repräsentiert eine einzelne Feldänderung zwischen zwei Patient-Ständen
 struct FieldChange {
     let path: String        // z. B. "/title" oder "/therapies/0/diagnoses/2"
     let oldValue: JSONValue    // alter Wert als String
     let newValue: JSONValue    // neuer Wert als String
-    let therapistId: Int?   // welcher Therapeut die Änderung verursacht hat (optional)
+    let therapistId: UUID?  // welcher Therapeut die Änderung verursacht hat (optional)
 }
 
 /// Primitive JSON-Darstellung zur Feldverfolgung

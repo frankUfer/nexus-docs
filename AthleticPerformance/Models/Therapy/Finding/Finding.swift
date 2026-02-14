@@ -9,7 +9,7 @@ import Foundation
 
 struct Finding: Identifiable, Codable, Hashable {
     var id: UUID
-    var therapistId: Int?
+    var therapistId: UUID?
     var patientId: UUID
     var title: String = ""
     var date: Date = Date()
@@ -23,8 +23,30 @@ struct Finding: Identifiable, Codable, Hashable {
     var otherAnomalies: [OtherAnomalieStatusEntry] = []
     var symptoms: [SymptomsStatusEntry] = []
 
+    enum CodingKeys: String, CodingKey {
+        case id, therapistId, patientId, title, date, notes, mediaFiles,
+             assessments, joints, muscles, tissues, otherAnomalies, symptoms
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        therapistId = try decodeOptionalTherapistId(from: container, forKey: .therapistId)
+        patientId = try container.decode(UUID.self, forKey: .patientId)
+        title = try container.decodeIfPresent(String.self, forKey: .title) ?? ""
+        date = try container.decodeIfPresent(Date.self, forKey: .date) ?? Date()
+        notes = try container.decodeIfPresent(String.self, forKey: .notes)
+        mediaFiles = try container.decodeIfPresent([MediaFile].self, forKey: .mediaFiles) ?? []
+        assessments = try container.decodeIfPresent([AssessmentStatusEntry].self, forKey: .assessments) ?? []
+        joints = try container.decodeIfPresent([JointStatusEntry].self, forKey: .joints) ?? []
+        muscles = try container.decodeIfPresent([MuscleStatusEntry].self, forKey: .muscles) ?? []
+        tissues = try container.decodeIfPresent([TissueStatusEntry].self, forKey: .tissues) ?? []
+        otherAnomalies = try container.decodeIfPresent([OtherAnomalieStatusEntry].self, forKey: .otherAnomalies) ?? []
+        symptoms = try container.decodeIfPresent([SymptomsStatusEntry].self, forKey: .symptoms) ?? []
+    }
+
     init(
-        therapistId: Int? = nil,
+        therapistId: UUID? = nil,
         patientId: UUID,
         title: String = "",
         date: Date = Date(),

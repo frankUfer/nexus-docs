@@ -12,7 +12,7 @@ struct ChangeLog: Codable {
         let path: String
         let oldValue: String
         let newValue: String
-        let therapistId: Int?
+        let therapistId: UUID?
     }
 
     let changes: [ChangeEntry]

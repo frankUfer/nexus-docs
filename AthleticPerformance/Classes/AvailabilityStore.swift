@@ -66,8 +66,32 @@ class AvailabilityStore: ObservableObject {
         slots.removeAll { $0.start >= start && $0.end <= end }
     }
     
-    func setTherapist(id: Int) {
-            therapistId = "\(id)"
-            load()
+    func setTherapist(id: UUID) {
+        therapistId = id.uuidString
+        // Migration: if UUID-based file doesn't exist but legacy Int-based file does, rename it
+        migrateFromIntBasedFile(uuid: id)
+        load()
+    }
+
+    private func migrateFromIntBasedFile(uuid: UUID) {
+        let fm = FileManager.default
+        let uuidFile = baseURL.appendingPathComponent("availability_\(uuid.uuidString).json")
+        guard !fm.fileExists(atPath: uuidFile.path) else { return }
+
+        // Check for legacy Int-based files (e.g., availability_1.json)
+        do {
+            let files = try fm.contentsOfDirectory(at: baseURL, includingPropertiesForKeys: nil)
+            for file in files where file.lastPathComponent.hasPrefix("availability_") && file.pathExtension == "json" {
+                let name = file.deletingPathExtension().lastPathComponent
+                let suffix = name.replacingOccurrences(of: "availability_", with: "")
+                // If suffix is a number (legacy Int ID), try mapping it
+                if let intId = Int(suffix), therapistUUIDFromInt(intId) == uuid {
+                    try fm.moveItem(at: file, to: uuidFile)
+                    return
+                }
+            }
+        } catch {
+            // Migration is best-effort; don't block app startup
         }
+    }
 }

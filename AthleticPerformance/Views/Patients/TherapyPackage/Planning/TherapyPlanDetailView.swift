@@ -449,7 +449,7 @@ struct TherapyPlanDetailView: View {
         }
         if let therapistId = plan.therapistId {
             let store = AvailabilityStore(
-                therapistId: "\(therapistId)",
+                therapistId: therapistId.uuidString,
                 baseDirectory: FileManager.default.urls(
                     for: .documentDirectory,
                     in: .userDomainMask
@@ -531,7 +531,7 @@ struct TherapyPlanDetailView: View {
                 "Therapist",
                 selection: Binding(
                     get: {
-                        plan.therapistId ?? availableTherapists.first?.id ?? 0
+                        plan.therapistId ?? availableTherapists.first?.id ?? UUID()
                     },
                     set: { plan.therapistId = $0 }
                 )

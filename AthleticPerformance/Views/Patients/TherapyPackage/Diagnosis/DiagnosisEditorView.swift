@@ -12,7 +12,7 @@ struct DiagnosisEditorView: View {
 
     @State private var title: String = ""
     @State private var diagnoseDate: Date = Date()
-    @State private var therapistId: Int = AppGlobals.shared.therapistId ?? 1
+    @State private var therapistId: UUID = AppGlobals.shared.therapistId ?? UUID()
     @State private var showAlert: Bool = false
 
     let therapyId: UUID

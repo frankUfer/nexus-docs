@@ -181,17 +181,18 @@ struct AppNavigationContainer: View {
         // ── NEW: Sync detail views ──
         case .sync:
             switch selectedSyncOption {
-            case .backup:
-                BackupView()
-            case .restore:
-                RestoreView()
-                    .environmentObject(patientStore)
+            case .status:
+                SyncStatusView()
+            case .sync:
+                SyncNowView()
+            case .settings:
+                SyncSettingsView()
             case .none:
                 ContentUnavailableView(
                     "",
                     systemImage: "arrow.triangle.2.circlepath",
                     description: Text(NSLocalizedString("syncSelectOption",
-                        comment: "Please select Backup or Restore"))
+                        comment: "Please select a sync option"))
                 )
             }
             

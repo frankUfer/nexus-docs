@@ -90,7 +90,7 @@ struct SessionPattern {
     var title: String
     var address: Address
     var serviceIds: [UUID]
-    var therapistId: Int
+    var therapistId: UUID
     var duration: TimeInterval
     var preferredStartTime: DateComponents
     var startDate: Date
@@ -106,7 +106,7 @@ struct NextSessionPattern {
 
 // MARK: - SessionBuilder
 
-func buildSession(on startTime: Date, context: SessionPlanningContext, therapistId: Int) -> TreatmentSessions {
+func buildSession(on startTime: Date, context: SessionPlanningContext, therapistId: UUID) -> TreatmentSessions {
     return TreatmentSessions(
         id: UUID(),
         date: Calendar.current.startOfDay(for: startTime),

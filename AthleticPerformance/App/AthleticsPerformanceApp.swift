@@ -17,6 +17,12 @@ struct AthleticsPerformanceApp: App {
     /// The global navigation state store.
     @StateObject private var navigationStore = AppNavigationStore()
 
+    // Sync infrastructure
+    @StateObject private var deviceConfigStore = DeviceConfigStore()
+    @StateObject private var syncStateStore = SyncStateStore()
+    @StateObject private var outboundQueue = OutboundQueue()
+    @StateObject private var versionTracker = EntityVersionTracker()
+
     /// Indicates whether initial setup is complete.
     @State private var isSetupComplete = false
 
@@ -26,13 +32,30 @@ struct AthleticsPerformanceApp: App {
     @State private var showProductiveImportAlert = false
     @State private var productiveDataExists = false
 
+    @State private var syncCoordinator: SyncCoordinator?
+
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some Scene {
         WindowGroup {
             contentView
                 .environmentObject(patientStore)
                 .environmentObject(navigationStore)
+                .environmentObject(deviceConfigStore)
+                .environmentObject(syncStateStore)
+                .modifier(SyncEnvironmentModifier(syncCoordinator: syncCoordinator))
                 .task {
                     await performInitialSetup()
+                }
+                .onChange(of: scenePhase) { _, newPhase in
+                    switch newPhase {
+                    case .active:
+                        Task { await syncCoordinator?.connectivityMonitor.checkConnectivity() }
+                    case .background:
+                        syncCoordinator?.pushOnBackground()
+                    default:
+                        break
+                    }
                 }
                 .alert(isPresented: $showProductiveImportAlert) {
                     Alert(
@@ -44,6 +67,19 @@ struct AthleticsPerformanceApp: App {
                         secondaryButton: .cancel()
                     )
                 }
+        }
+    }
+
+    /// Helper to inject optional SyncCoordinator into the environment.
+    private struct SyncEnvironmentModifier: ViewModifier {
+        let syncCoordinator: SyncCoordinator?
+
+        func body(content: Content) -> some View {
+            if let coordinator = syncCoordinator {
+                content.environmentObject(coordinator)
+            } else {
+                content
+            }
         }
     }
 
@@ -92,6 +128,9 @@ struct AthleticsPerformanceApp: App {
             return
         }
 
+        // Migrate legacy Int therapist IDs to UUIDs (one-time, idempotent)
+        TherapistIdMigrator.runIfNeeded()
+
         guard loadAppData() else {
             isLoadSuccessful = false
             showErrorAlert(
@@ -113,6 +152,9 @@ struct AthleticsPerformanceApp: App {
         )
 
         await requestCameraPermissionIfNeeded()
+
+        // Initialize sync system
+        initializeSyncCoordinator()
 
         isLoadSuccessful = true
         isSetupComplete = true
@@ -150,6 +192,32 @@ struct AthleticsPerformanceApp: App {
             )
         @unknown default:
             break
+        }
+    }
+
+    // MARK: - Sync Initialization
+
+    /// Creates and starts the sync coordinator if the device is configured.
+    @MainActor
+    private func initializeSyncCoordinator() {
+        let client = NexusSyncClient(deviceConfigStore: deviceConfigStore)
+        let monitor = ConnectivityMonitor(client: client)
+
+        let coordinator = SyncCoordinator(
+            patientStore: patientStore,
+            outboundQueue: outboundQueue,
+            versionTracker: versionTracker,
+            syncStateStore: syncStateStore,
+            deviceConfigStore: deviceConfigStore,
+            client: client,
+            connectivityMonitor: monitor
+        )
+
+        syncCoordinator = coordinator
+
+        // Start auto-sync if device has a server URL configured
+        if !deviceConfigStore.config.serverURL.isEmpty {
+            coordinator.startAutoSync()
         }
     }
 

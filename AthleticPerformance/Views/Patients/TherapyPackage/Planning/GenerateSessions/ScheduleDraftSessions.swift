@@ -21,7 +21,7 @@ func scheduleDraftSessions(
     ownSessions: [TreatmentSessions],
     otherSessions: [TreatmentSessions],
     validator: TravelTimeValidator,
-    therapistId: Int,
+    therapistId: UUID,
     targetCount: Int,
     calendar: Calendar = .current
 ) async -> (sessions: [TreatmentSessions], didRelax: Bool) {

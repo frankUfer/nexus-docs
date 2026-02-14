@@ -8,7 +8,7 @@
 import Foundation
 
 func findSessions(
-    for therapistId: Int,
+    for therapistId: UUID,
     from date: Date,
     excluding therapyPlanId: UUID,
     in patients: [Patient]

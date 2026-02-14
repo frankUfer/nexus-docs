@@ -29,7 +29,7 @@ struct AnamnesisEditView: View {
             Section(header: Text(NSLocalizedString("therapist", comment: "Therapist"))) {
                 Picker("", selection: $anamnesisCopy.therapistId) {
                     ForEach(AppGlobals.shared.therapistList, id: \.id) { therapist in
-                        Text(therapist.fullName).tag(therapist.id as Int?)
+                        Text(therapist.fullName).tag(therapist.id as UUID?)
                     }
                 }
             }

@@ -1,26 +1,31 @@
 import SwiftUI
 
 enum SyncOption: String, CaseIterable, Identifiable, Hashable {
-    case backup
-    case restore
+    case status
+    case sync
+    case settings
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
-        case .backup:
-            return NSLocalizedString("syncBackup", comment: "Backup")
-        case .restore:
-            return NSLocalizedString("syncRestore", comment: "Restore")
+        case .status:
+            return NSLocalizedString("syncStatus", comment: "Status")
+        case .sync:
+            return NSLocalizedString("syncNow", comment: "Sync Now")
+        case .settings:
+            return NSLocalizedString("syncSettings", comment: "Settings")
         }
     }
 
     var icon: String {
         switch self {
-        case .backup:
-            return "arrow.up.doc.on.clipboard"
-        case .restore:
-            return "arrow.down.doc"
+        case .status:
+            return "chart.bar.doc.horizontal"
+        case .sync:
+            return "arrow.triangle.2.circlepath"
+        case .settings:
+            return "gearshape.2"
         }
     }
 }

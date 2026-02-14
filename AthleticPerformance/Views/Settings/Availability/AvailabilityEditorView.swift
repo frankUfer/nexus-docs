@@ -10,7 +10,7 @@ import LocalAuthentication
 
 struct AvailabilityEditorView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedTherapistId: Int = AppGlobals.shared.therapistId ?? 0
+    @State private var selectedTherapistId: UUID = AppGlobals.shared.therapistId ?? UUID()
     @StateObject private var holidayStore = HolidayStore()
     @StateObject private var availabilityStore = AvailabilityStore(
         therapistId: "0",

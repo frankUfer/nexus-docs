@@ -87,7 +87,7 @@ func planOneSession(
     newlyPlanned: [TreatmentSessions],
     draftSessions: [TreatmentSessions],
     validator: TravelTimeValidator,
-    therapistId: Int,
+    therapistId: UUID,
     calendar: Calendar = .current,
     travelManager: TravelTimeManager,
     strategy: PlanningStrategy
@@ -243,7 +243,7 @@ func makeDraftContainer(
     title: String,
     patientAddress: Address,
     serviceIds: [UUID],
-    therapistId: Int
+    therapistId: UUID
 ) -> TreatmentSessions {
     if draftSessions.indices.contains(index) {
         var d = draftSessions[index]
@@ -303,7 +303,7 @@ func tryMergeInWeek(
     title: String,
     therapistAvailability: [AvailabilitySlot],
     validator: TravelTimeValidator,
-    therapistId: Int,
+    therapistId: UUID,
     calendar: Calendar,
     travelManager: TravelTimeManager
 ) async -> TreatmentSessions? {
@@ -460,7 +460,7 @@ func tryMergeOnDay(
     title: String,
     therapistAvailability: [AvailabilitySlot],
     validator: TravelTimeValidator,
-    therapistId: Int,
+    therapistId: UUID,
     calendar: Calendar,
     travelManager: TravelTimeManager
 ) async -> TreatmentSessions? {
@@ -585,7 +585,7 @@ func findSlotRadialOnDay(
     title: String,
     therapistAvailability: [AvailabilitySlot],
     validator: TravelTimeValidator,
-    therapistId: Int,
+    therapistId: UUID,
     calendar: Calendar,
     travelManager: TravelTimeManager
 ) async -> TreatmentSessions? {
@@ -735,7 +735,7 @@ func tryExactPreferredOnDay(
     title: String,
     therapistAvailability: [AvailabilitySlot],
     validator: TravelTimeValidator,
-    therapistId: Int,
+    therapistId: UUID,
     calendar: Calendar,
     travelManager: TravelTimeManager
 ) async -> TreatmentSessions? {
@@ -827,7 +827,7 @@ func findAnyFeasibleOnDay(
     title: String,
     therapistAvailability: [AvailabilitySlot],
     validator: TravelTimeValidator,
-    therapistId: Int,
+    therapistId: UUID,
     calendar: Calendar,
     travelManager: TravelTimeManager
 ) async -> TreatmentSessions? {

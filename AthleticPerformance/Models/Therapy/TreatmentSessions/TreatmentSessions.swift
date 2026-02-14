@@ -35,7 +35,7 @@ struct TreatmentSessions: Sendable, Identifiable, Codable, Hashable {
     var treatmentServiceIds: [UUID] = []
 
     // Therapeut (nur ID, z. B. Benutzer- oder Mitarbeiter-ID)
-    var therapistId: Int
+    var therapistId: UUID
 
     // Liste von Referenz-IDs auf andere Statusobjekte (z. B. Reevals)
     var reevaluationEntryIds: [ReevaluationReferences] = []
@@ -226,7 +226,7 @@ extension TreatmentSessions {
         isPaid = try container.decodeIfPresent(Bool.self, forKey: .isPaid) ?? false
         
         treatmentServiceIds = try container.decodeIfPresent([UUID].self, forKey: .treatmentServiceIds) ?? []
-        therapistId = try container.decode(Int.self, forKey: .therapistId)
+        therapistId = try decodeTherapistId(from: container, forKey: .therapistId)
         reevaluationEntryIds = try container.decodeIfPresent([ReevaluationReferences].self, forKey: .reevaluationEntryIds) ?? []
         notes = try container.decodeIfPresent(String.self, forKey: .notes)
         icsUid = try container.decodeIfPresent(String.self, forKey: .icsUid)
