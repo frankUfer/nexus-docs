@@ -1,7 +1,6 @@
 # Component repositories (each has its own git repo)
 nexus-core/
 nexus-gate/
-nexus-field/
 clarity/
 clarity-swift/
 
@@ -15,3 +14,4 @@ Thumbs.db
 *~
 .vscode/
 .idea/
+
