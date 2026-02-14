@@ -12,7 +12,7 @@ struct PhoneNumberHelper {
     static let shared = PhoneNumberHelper()
 
     private var util: NBPhoneNumberUtil {
-        NBPhoneNumberUtil.sharedInstance()!
+        NBPhoneNumberUtil.sharedInstance()
     }
 
     /// Gibt die formatierte Nummer zurück, z. B. „+49 176 1234567“

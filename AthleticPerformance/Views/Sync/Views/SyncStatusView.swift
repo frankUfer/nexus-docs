@@ -71,7 +71,7 @@ struct SyncStatusView: View {
                     Text(NSLocalizedString("syncQueuedChanges", comment: "Queued changes"))
                     Spacer()
                     Text("\(syncCoordinator.outboundQueue.count)")
-                        .foregroundStyle(syncCoordinator.outboundQueue.isEmpty ? .secondary : .orange)
+                        .foregroundStyle(syncCoordinator.outboundQueue.isEmpty ? Color.secondary : Color.orange)
                 }
             }
 

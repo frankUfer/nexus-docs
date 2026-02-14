@@ -4,6 +4,7 @@ import Foundation
 /// Uses EntityExtractor to flatten both states, then compares entity-by-entity via JSON equality.
 enum ChangeDetector {
 
+    @MainActor
     static func detectChanges(
         old: Patient?,
         new: Patient,

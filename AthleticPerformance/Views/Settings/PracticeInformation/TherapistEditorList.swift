@@ -9,11 +9,11 @@ import SwiftUI
 
 struct TherapistEditorList: View {
     @Binding var therapists: [Therapists]
-    @State private var therapistsToDelete: Set<Int> = []
-    @State private var pendingDeleteId: Int? = nil
+    @State private var therapistsToDelete: Set<UUID> = []
+    @State private var pendingDeleteId: UUID? = nil
     @State private var showDeleteConfirmation = false
 
-    let nextId: () -> Int
+    let nextId: () -> UUID
     var onModified: () -> Void
     var onDone: () -> Void = {}
     var onCancel: () -> Void = {}
@@ -115,7 +115,7 @@ struct TherapistEditorList: View {
         therapists.indices.filter { !therapistsToDelete.contains(therapists[$0].id) }
     }
 
-    private func canDeleteTherapist(id: Int) -> Bool {
+    private func canDeleteTherapist(id: UUID) -> Bool {
         // TODO: Später echte Validierung
         return true
     }

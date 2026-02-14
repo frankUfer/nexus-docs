@@ -53,7 +53,7 @@ struct PracticeInfoView: View {
                     if editingSection == .therapists {
                         TherapistEditorList(
                             therapists: $globals.practiceInfo.therapists,
-                            nextId: { (globals.practiceInfo.therapists.map(\ .id).max() ?? 0) + 1 },
+                            nextId: { UUID() },
                             onModified: { isModified = true },
                             onDone: { saveAndReset() },
                             onCancel: { editingSection = nil }

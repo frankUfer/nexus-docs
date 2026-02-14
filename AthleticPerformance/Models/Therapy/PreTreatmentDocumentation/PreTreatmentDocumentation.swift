@@ -31,6 +31,40 @@ struct PreTreatmentDocumentation: Identifiable, Codable, Hashable {
 
     var additionalNotes: String?
 
+    init(
+        id: UUID = UUID(),
+        date: Date = Date(),
+        therapistId: UUID,
+        therapyGoals: String = "",
+        expectedOutcomes: String? = nil,
+        topicsDiscussed: [String] = [],
+        patientQuestions: String? = nil,
+        answersProvided: String? = nil,
+        risksDiscussed: Bool = false,
+        patientUnderstood: Bool = false,
+        contractGiven: Bool = false,
+        contractDate: Date? = nil,
+        contractLocation: String? = nil,
+        signatureFile: MediaFile? = nil,
+        additionalNotes: String? = nil
+    ) {
+        self.id = id
+        self.date = date
+        self.therapistId = therapistId
+        self.therapyGoals = therapyGoals
+        self.expectedOutcomes = expectedOutcomes
+        self.topicsDiscussed = topicsDiscussed
+        self.patientQuestions = patientQuestions
+        self.answersProvided = answersProvided
+        self.risksDiscussed = risksDiscussed
+        self.patientUnderstood = patientUnderstood
+        self.contractGiven = contractGiven
+        self.contractDate = contractDate
+        self.contractLocation = contractLocation
+        self.signatureFile = signatureFile
+        self.additionalNotes = additionalNotes
+    }
+
     enum CodingKeys: String, CodingKey {
         case id, date, therapistId, therapyGoals, expectedOutcomes,
              topicsDiscussed, patientQuestions, answersProvided,
