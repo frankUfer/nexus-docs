@@ -37,6 +37,7 @@ enum EntityExtractor {
             }
 
             for plan in therapy.therapyPlans {
+                entities.append(extractTherapyPlan(plan, patientId: patient.id))
                 for session in plan.treatmentSessions {
                     entities.append(extractSession(session, patientId: patient.id))
                 }
@@ -58,6 +59,21 @@ enum EntityExtractor {
         }
 
         return entities
+    }
+
+    /// Extracts availability slots as sync entities (not patient-scoped).
+    static func extractAvailability(slots: [AvailabilitySlot], therapistId: UUID) -> [ExtractedEntity] {
+        slots.map { slot in
+            var data = encodeToDictionary(slot)
+            data["therapistId"] = AnyCodable(therapistId.uuidString)
+            return ExtractedEntity(
+                entityType: .availability,
+                entityId: slot.id,
+                patientId: nil,
+                dataCategory: .transactionalData,
+                data: data
+            )
+        }
     }
 
     // MARK: - Individual Extractors
@@ -123,6 +139,19 @@ enum EntityExtractor {
         return ExtractedEntity(
             entityType: .assessment,
             entityId: exercise.id,
+            patientId: patientId,
+            dataCategory: .transactionalData,
+            data: data
+        )
+    }
+
+    private static func extractTherapyPlan(_ plan: TherapyPlan, patientId: UUID) -> ExtractedEntity {
+        var data = encodeToDictionary(plan)
+        data.removeValue(forKey: "treatmentSessions")
+        data.removeValue(forKey: "sessionDocs")
+        return ExtractedEntity(
+            entityType: .session,
+            entityId: plan.id,
             patientId: patientId,
             dataCategory: .transactionalData,
             data: data

@@ -215,6 +215,15 @@ struct AthleticsPerformanceApp: App {
 
         syncCoordinator = coordinator
 
+        // Wire availability store if a therapist is selected
+        if let therapistId = AppGlobals.shared.therapistId {
+            let store = AvailabilityStore(
+                therapistId: therapistId.uuidString,
+                baseDirectory: FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            )
+            coordinator.wireAvailabilityStore(store)
+        }
+
         // Start auto-sync if device has a server URL configured
         if !deviceConfigStore.config.serverURL.isEmpty {
             coordinator.startAutoSync()

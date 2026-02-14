@@ -76,6 +76,10 @@ enum EntityMerger {
         if let session = try? decoder.decode(TreatmentSessions.self, from: jsonData) {
             return mergeTreatmentSession(session, into: &patient)
         }
+        // Try as TherapyPlan
+        if let plan = try? decoder.decode(TherapyPlan.self, from: jsonData) {
+            return mergeTherapyPlan(plan, into: &patient)
+        }
         // Try as TherapySessionDocumentation
         if let doc = try? decoder.decode(TherapySessionDocumentation.self, from: jsonData) {
             return mergeSessionDoc(doc, into: &patient)
@@ -96,6 +100,8 @@ enum EntityMerger {
             existing.tags = therapy.tags
             existing.isAgreed = therapy.isAgreed
             existing.billingPeriod = therapy.billingPeriod
+            existing.dischargeReport = therapy.dischargeReport
+            existing.preTreatment = therapy.preTreatment
             patient.therapies[idx] = existing
         } else {
             patient.therapies.append(therapy)
@@ -135,6 +141,34 @@ enum EntityMerger {
                     return true
                 }
             }
+        }
+        return false
+    }
+
+    private static func mergeTherapyPlan(_ plan: TherapyPlan, into patient: inout Patient) -> Bool {
+        // Search existing therapies for a matching plan by id
+        for tIdx in patient.therapies.indices {
+            guard var therapy = patient.therapies[tIdx] else { continue }
+            if let pIdx = therapy.therapyPlans.firstIndex(where: { $0.id == plan.id }) {
+                therapy.therapyPlans[pIdx] = plan
+                patient.therapies[tIdx] = therapy
+                return true
+            }
+        }
+        // New plan — append to therapy with matching therapistId, or first therapy
+        for tIdx in patient.therapies.indices {
+            guard var therapy = patient.therapies[tIdx] else { continue }
+            if therapy.therapistId == plan.therapistId {
+                therapy.therapyPlans.append(plan)
+                patient.therapies[tIdx] = therapy
+                return true
+            }
+        }
+        if let tIdx = patient.therapies.firstIndex(where: { $0 != nil }),
+           var therapy = patient.therapies[tIdx] {
+            therapy.therapyPlans.append(plan)
+            patient.therapies[tIdx] = therapy
+            return true
         }
         return false
     }

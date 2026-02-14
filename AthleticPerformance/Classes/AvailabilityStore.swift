@@ -9,7 +9,10 @@ import Foundation
 
 class AvailabilityStore: ObservableObject {
     @Published var slots: [AvailabilitySlot] = []
-    
+
+    /// Sync callback: called after save with current slots and therapist UUID.
+    var onAvailabilityChanged: (([AvailabilitySlot], UUID) -> Void)?
+
     private var therapistId: String
     private let baseURL: URL
     
@@ -44,6 +47,10 @@ class AvailabilityStore: ObservableObject {
             let file = AvailabilitySlotFile(version: 1, items: slots)
             let data = try JSONEncoder().encode(file)
             try data.write(to: fileURL, options: .atomic)
+
+            if let uuid = UUID(uuidString: therapistId) {
+                onAvailabilityChanged?(slots, uuid)
+            }
         } catch {
             let message = String(format: NSLocalizedString("errorSavingAvailability", comment: "Error saving availability: %@"), error.localizedDescription)
             showErrorAlert(errorMessage: message)

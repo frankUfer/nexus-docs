@@ -24,6 +24,8 @@ final class SyncCoordinator: ObservableObject {
 
     private let client: NexusSyncClient
     private weak var patientStore: PatientStore?
+    private weak var availabilityStore: AvailabilityStore?
+    private var lastAvailabilitySnapshot: [AvailabilitySlot]?
     private var cancellables = Set<AnyCancellable>()
     private var autoSyncTask: Task<Void, Never>?
     private var pullTimer: AnyCancellable?
@@ -100,6 +102,49 @@ final class SyncCoordinator: ObservableObject {
         outboundQueue.enqueueAll(changes)
         syncStateStore.state.pendingChangeCount = outboundQueue.count
         syncStateStore.saveState()
+    }
+
+    // MARK: - Availability Sync
+
+    func wireAvailabilityStore(_ store: AvailabilityStore) {
+        self.availabilityStore = store
+        self.lastAvailabilitySnapshot = store.slots
+
+        store.onAvailabilityChanged = { [weak self] newSlots, therapistId in
+            self?.handleAvailabilityChanged(new: newSlots, therapistId: therapistId)
+        }
+    }
+
+    private func handleAvailabilityChanged(new: [AvailabilitySlot], therapistId: UUID) {
+        let changes = ChangeDetector.detectAvailabilityChanges(
+            old: lastAvailabilitySnapshot,
+            new: new,
+            therapistId: therapistId,
+            versionTracker: versionTracker
+        )
+        lastAvailabilitySnapshot = new
+        guard !changes.isEmpty else { return }
+        outboundQueue.enqueueAll(changes)
+        syncStateStore.state.pendingChangeCount = outboundQueue.count
+        syncStateStore.saveState()
+    }
+
+    private func applyAvailabilityChange(_ change: SyncPullChange) {
+        guard let store = availabilityStore else { return }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        guard let jsonData = try? JSONSerialization.data(
+            withJSONObject: change.data.mapValues(\.value)
+        ),
+              let slot = try? decoder.decode(AvailabilitySlot.self, from: jsonData) else { return }
+
+        // Temporarily disconnect callback to avoid re-enqueueing pulled changes
+        let savedCallback = store.onAvailabilityChanged
+        store.onAvailabilityChanged = nil
+        store.addOrUpdate(slot)
+        store.save()
+        store.onAvailabilityChanged = savedCallback
+        lastAvailabilitySnapshot = store.slots
     }
 
     // MARK: - Full Sync
@@ -267,6 +312,10 @@ final class SyncCoordinator: ObservableObject {
             }
 
         case .masterData, .transactionalData:
+            if change.entityType == .availability {
+                applyAvailabilityChange(change)
+                return
+            }
             guard let patientStore else { return }
             _ = await PatientSyncHandler.apply(change: change, patientStore: patientStore)
         }
