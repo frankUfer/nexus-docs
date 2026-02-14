@@ -87,8 +87,8 @@ most important habit for Claude Code productivity.
 | PostgreSQL install + schemas       | nexus-core | ✅ Done |
 | FastAPI skeleton + health endpoint | nexus-core | ✅ Done |
 | systemd unit files                 | nexus-core | ✅ Done |
-| WireGuard + UFW setup scripts      | nexus-gate | Pending |
-| Deployment script (Mac → Server)   | nexus-core | Pending |
+| WireGuard + UFW setup scripts      | nexus-gate | ✅ Done |
+| Deployment script (Mac → Server)   | nexus-core | ✅ Done |
 
 ### Phase 2 — Core Data Flow ✅
 **Goal:** iPads can push/pull data through the sync API
