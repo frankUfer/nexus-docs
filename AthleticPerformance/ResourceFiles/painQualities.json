@@ -1,0 +1,60 @@
+{
+    "version": 1,
+    "items": [
+        {
+            "id": "d3bb56fd-2a45-4e90-ae57-9c8c36d8d305",
+            "de": "stechend",
+            "en": "stabbing"
+        },
+        {
+            "id": "b1f8cb2e-b9a9-45c5-89d7-fd38f1d01204",
+            "de": "dumpf",
+            "en": "dull"
+        },
+        {
+            "id": "8bdf3df8-089c-4fa7-b65e-e81c8466f8db",
+            "de": "ziehend",
+            "en": "pulling"
+        },
+        {
+            "id": "59334a93-0543-4d0c-b186-69c7d94a7e2d",
+            "de": "brennend",
+            "en": "burning"
+        },
+        {
+            "id": "24c94c39-78dc-46f8-bc99-fdfc0e4a369f",
+            "de": "bohrend",
+            "en": "boring"
+        },
+        {
+            "id": "a21ce839-9e71-41ee-8fc7-7862c8f933d6",
+            "de": "klopfend",
+            "en": "throbbing"
+        },
+        {
+            "id": "92c41a98-10f1-47d6-9362-9beebbe2a29d",
+            "de": "schneidend",
+            "en": "cutting"
+        },
+        {
+            "id": "f4ed15f3-b44d-49ab-b38e-f9299cde2b8a",
+            "de": "drückend",
+            "en": "pressing"
+        },
+        {
+            "id": "ff3b7cd4-ea87-4edb-9d66-f8ce9f3e5cd1",
+            "de": "elektrisierend",
+            "en": "electric shock-like"
+        },
+        {
+            "id": "b2d405f9-927a-4068-a1ae-8f3cc3e93bcb",
+            "de": "krampfartig",
+            "en": "cramping"
+        },
+        {
+            "id": "56e31225-7df2-4e15-9b4c-68a9a77f85c5",
+            "de": "spannend",
+            "en": "tight"
+        }
+    ]
+}

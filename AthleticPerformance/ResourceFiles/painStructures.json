@@ -1,0 +1,40 @@
+{
+    "version": 1,
+    "items": [
+        {
+            "id": "6df303e6-94c4-4ff4-83a2-85df1261f726",
+            "de": "akut",
+            "en": "acute"
+        },
+        {
+            "id": "a70316b4-ccf9-4c1d-9e9e-e8fa70d3d0b6",
+            "de": "chronisch",
+            "en": "chronic"
+        },
+        {
+            "id": "5c9a4b4b-3796-49bb-b22b-d94f45864e01",
+            "de": "chronisch-rezidivierend",
+            "en": "chronic-recurrent"
+        },
+        {
+            "id": "c190c6c6-7ef4-497b-adef-87c72bdf28c8",
+            "de": "anfallsartig",
+            "en": "episodic"
+        },
+        {
+            "id": "a9dd00a5-57ee-4b3e-8a2f-1f1a0f2e8013",
+            "de": "permanent",
+            "en": "persistent"
+        },
+        {
+            "id": "f81f0210-b0d6-4404-917f-4c4772a2f019",
+            "de": "progredient",
+            "en": "progressive"
+        },
+        {
+            "id": "26cf7e2c-b760-44d7-b94f-48c4a85bb3d6",
+            "de": "intermittierend",
+            "en": "intermittent"
+        }
+    ]
+}

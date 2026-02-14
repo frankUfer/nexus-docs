@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "1.0",
+  "languages": ["en", "de"],
+  "anamnesis": {
+    "medicalHistory": {
+      "orthopedic": ["herniated_disc", "osteoarthritis", "scoliosis", "joint_replacement", "orthopedic_surgeries", "fractures"],
+      "neurological": ["stroke", "parkinsons_disease", "multiple_sclerosis", "polyneuropathy", "paralysis"],
+      "cardiovascular": ["hypertension", "heart_attack", "heart_failure", "arrhythmia", "pad", "thrombosis"],
+      "pulmonary": ["asthma", "copd", "chronic_bronchitis", "pulmonary_embolism"],
+      "metabolic": ["diabetes", "osteoporosis", "thyroid_disorder", "obesity"],
+      "psychiatric": ["depression", "anxiety_disorder", "burnout", "psychosomatic_symptoms"],
+      "oncological": ["cancer", "chemotherapy", "radiation_therapy", "lymphedema"],
+      "autoimmune": ["rheumatic_disease", "autoimmune_disease"],
+      "infectious": ["hepatitis", "hiv"],
+      "other": ["skin_conditions", "implants", "pacemaker", "medication_use", "allergies"]
+    },
+    "lifestyle": {
+      "occupation": {
+        "type": "sedentary | physical | mixed",
+        "description": "office job, construction work, etc."
+      },
+      "activityLevel": "low | moderate | high",
+      "sports": {
+        "active": true,
+        "types": ["cycling", "fitness"]
+      },
+      "balanceIssues": {
+        "hasProblems": true,
+        "symptoms": ["dizziness", "instability"]
+      },
+      "smoking": {
+        "status": "never | former | current",
+        "quantityPerDay": 10
+      },
+      "alcohol": {
+        "frequency": "none | occasional | regular",
+        "unitsPerWeek": 5
+      },
+      "nutritionNotes": "",
+      "sleepQuality": "good | moderate | poor",
+      "stressLevel": "low | medium | high"
+    }
+  "localization": {
+    "en": {
+      "herniated_disc": "Herniated disc",
+      "osteoarthritis": "Osteoarthritis",
+      "scoliosis": "Scoliosis",
+      "joint_replacement": "Joint replacement",
+      "orthopedic_surgeries": "Orthopedic surgeries",
+      "fractures": "Fractures",
+      "stroke": "Stroke",
+      "parkinsons_disease": "Parkinson's disease",
+      "multiple_sclerosis": "Multiple sclerosis",
+      "polyneuropathy": "Polyneuropathy",
+      "paralysis": "Paralysis",
+      "hypertension": "High blood pressure",
+      "heart_attack": "Heart attack",
+      "heart_failure": "Heart failure",
+      "arrhythmia": "Heart arrhythmia",
+      "pad": "Peripheral artery disease",
+      "thrombosis": "Thrombosis / Embolism",
+      "asthma": "Asthma",
+      "copd": "Chronic obstructive pulmonary disease (COPD)",
+      "chronic_bronchitis": "Chronic bronchitis",
+      "pulmonary_embolism": "Pulmonary embolism",
+      "diabetes": "Diabetes mellitus",
+      "osteoporosis": "Osteoporosis",
+      "thyroid_disorder": "Thyroid disorder",
+      "obesity": "Obesity",
+      "depression": "Depression",
+      "anxiety_disorder": "Anxiety disorder",
+      "burnout": "Burnout",
+      "psychosomatic_symptoms": "Psychosomatic symptoms",
+      "cancer": "Cancer",
+      "chemotherapy": "Chemotherapy",
+      "radiation_therapy": "Radiation therapy",
+      "lymphedema": "Lymphedema",
+      "rheumatic_disease": "Rheumatic disease",
+      "autoimmune_disease": "Autoimmune disease",
+      "hepatitis": "Hepatitis",
+      "hiv": "HIV",
+      "skin_conditions": "Skin conditions",
+      "implants": "Implants",
+      "pacemaker": "Pacemaker",
+      "medication_use": "Medication use",
+      "allergies": "Allergies"
+    },
+    "de": {
+      "herniated_disc": "Bandscheibenvorfall",
+      "osteoarthritis": "Arthrose",
+      "scoliosis": "Skoliose",
+      "joint_replacement": "Gelenkersatz",
+      "orthopedic_surgeries": "Operationen am Bewegungsapparat",
+      "fractures": "Frakturen",
+      "stroke": "Schlaganfall",
+      "parkinsons_disease": "Parkinson",
+      "multiple_sclerosis": "Multiple Sklerose",
+      "polyneuropathy": "Polyneuropathie",
+      "paralysis": "Lähmungen",
+      "hypertension": "Bluthochdruck",
+      "heart_attack": "Herzinfarkt",
+      "heart_failure": "Herzinsuffizienz",
+      "arrhythmia": "Herzrhythmusstörungen",
+      "pad": "pAVK",
+      "thrombosis": "Thrombose / Embolie",
+      "asthma": "Asthma bronchiale",
+      "copd": "COPD",
+      "chronic_bronchitis": "Chronische Bronchitis",
+      "pulmonary_embolism": "Lungenembolie",
+      "diabetes": "Diabetes mellitus",
+      "osteoporosis": "Osteoporose",
+      "thyroid_disorder": "Schilddrüsenerkrankung",
+      "obesity": "Adipositas",
+      "depression": "Depression",
+      "anxiety_disorder": "Angststörung",
+      "burnout": "Burnout",
+      "psychosomatic_symptoms": "Psychosomatische Beschwerden",
+      "cancer": "Krebserkrankung",
+      "chemotherapy": "Chemotherapie",
+      "radiation_therapy": "Strahlentherapie",
+      "lymphedema": "Lymphödem",
+      "rheumatic_disease": "Rheumatische Erkrankung",
+      "autoimmune_disease": "Autoimmunerkrankung",
+      "hepatitis": "Hepatitis",
+      "hiv": "HIV",
+      "skin_conditions": "Hautprobleme",
+      "implants": "Implantate",
+      "pacemaker": "Herzschrittmacher",
+      "medication_use": "Medikamenteneinnahme",
+      "allergies": "Allergien"
+    }
+  }
+}

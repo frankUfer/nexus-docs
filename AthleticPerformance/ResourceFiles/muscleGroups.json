@@ -1,0 +1,95 @@
+{
+    "version": 1,
+    "items": [
+        {
+            "id": "fd6d2c0e-b191-4fd9-a4c2-cc8f65ebdcb2",
+            "de": "Nackenmuskulatur",
+            "en": "Neck muscles"
+        },
+        {
+            "id": "3d99dd7a-f9e3-4bb5-8043-4c49d33a1605",
+            "de": "Schultermuskulatur",
+            "en": "Shoulder muscles"
+        },
+        {
+            "id": "0b9ea9cb-1165-4a18-9d71-24408313a3b2",
+            "de": "Brustmuskulatur",
+            "en": "Chest muscles"
+        },
+        {
+            "id": "54b4e4e3-3ff3-4b11-b529-6075f5b40384",
+            "de": "Rückenmuskulatur",
+            "en": "Back muscles"
+        },
+        {
+            "id": "2e0ebf25-5984-4468-bc55-09b21ff7d265",
+            "de": "Bauchmuskulatur",
+            "en": "Abdominal muscles"
+        },
+        {
+            "id": "1dc6ee99-2c79-4d61-9b85-bbb7994c1633",
+            "de": "Gesäßmuskulatur",
+            "en": "Gluteal muscles"
+        },
+        {
+            "id": "9c4b28d7-2ea1-4bd1-b1de-4c22dd3e2a8e",
+            "de": "Oberschenkelmuskulatur (vorne)",
+            "en": "Quadriceps (front thigh muscles)"
+        },
+        {
+            "id": "9cbbe601-9db1-4c35-b188-5a89c2fc397d",
+            "de": "Oberschenkelmuskulatur (hinten)",
+            "en": "Hamstrings (rear thigh muscles)"
+        },
+        {
+            "id": "d53f7a48-3c1b-41e9-bcd6-4b517e5d9d85",
+            "de": "Unterschenkelmuskulatur",
+            "en": "Lower leg muscles"
+        },
+        {
+            "id": "76c1f086-6b2e-4e9e-b71d-7b8702fcb276",
+            "de": "Wadenmuskulatur",
+            "en": "Calf muscles"
+        },
+        {
+            "id": "4efb4265-e621-4ae0-b139-26421e1fa346",
+            "de": "Armmuskulatur (Oberarm)",
+            "en": "Upper arm muscles"
+        },
+        {
+            "id": "f0b7eb41-9ac7-40ae-a4fc-574f4e4c96ec",
+            "de": "Unterarmmuskulatur",
+            "en": "Forearm muscles"
+        },
+        {
+            "id": "2b8a2f77-73b5-4d38-943e-4d4e135e41fc",
+            "de": "Handmuskulatur",
+            "en": "Hand muscles"
+        },
+        {
+            "id": "a013e444-d3f1-4f79-9b76-1bb254d9f787",
+            "de": "Beckenbodenmuskulatur",
+            "en": "Pelvic floor muscles"
+        },
+        {
+            "id": "d74edc02-f03b-432f-8a7d-08f58c21e3cc",
+            "de": "Gesichtsmuskulatur",
+            "en": "Facial muscles"
+        },
+        {
+            "id": "99a1f4e0-e12a-4d87-9b51-ff91d585b771",
+            "de": "Augenmuskulatur",
+            "en": "Eye muscles"
+        },
+        {
+            "id": "ac2dcdf6-dae7-474f-a1fa-bf50a8940d36",
+            "de": "Zungenmuskulatur",
+            "en": "Tongue muscles"
+        },
+        {
+            "id": "0f0f75d1-d733-4cfd-9e97-c71c2fa55299",
+            "de": "Kaumuskulatur",
+            "en": "Masticatory muscles"
+        }
+    ]
+}

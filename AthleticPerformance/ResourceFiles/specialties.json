@@ -1,0 +1,181 @@
+{
+    "version": 1,
+    "items": [
+        {
+            "id": "a5b8e6a2-df13-4e33-ae26-75d4db2f3e44",
+            "name": {
+                "de": "keine",
+                "en": "none"
+            },
+            "source": "central"
+        },
+        {
+            "id": "a5b8e6a2-df13-4e33-ae26-75d4db299e24",
+            "name": {
+                "de": "Allgemeinmedizin",
+                "en": "General medicine"
+            },
+            "source": "central"
+        },
+        {
+            "id": "a5b8e6a2-df13-4e33-ae26-75d4db2f3e45",
+            "name": {
+                "de": "Orthopädie",
+                "en": "Orthopedics"
+            },
+            "source": "central"
+        },
+        {
+            "id": "b9636c07-25cb-4aa4-81ea-2ac1cb23a4a0",
+            "name": {
+                "de": "Neurologie",
+                "en": "Neurology"
+            },
+            "source": "central"
+        },
+        {
+            "id": "6e96c749-0488-4f70-8733-16f59cc75e5c",
+            "name": {
+                "de": "Kinderheilkunde",
+                "en": "Pediatrics"
+            },
+            "source": "central"
+        },
+        {
+            "id": "f327f118-0543-4a25-8496-17b1b0cc28c5",
+            "name": {
+                "de": "Dermatologie",
+                "en": "Dermatology"
+            },
+            "source": "central"
+        },
+        {
+            "id": "1d97f0a2-91f4-4d5d-abe0-6c05d6ff01ff",
+            "name": {
+                "de": "Kardiologie",
+                "en": "Cardiology"
+            },
+            "source": "central"
+        },
+        {
+            "id": "d2a9ec9e-bf1b-4c70-925a-298350d2643d",
+            "name": {
+                "de": "Radiologie",
+                "en": "Radiology"
+            },
+            "source": "central"
+        },
+        {
+            "id": "cb1ddf29-0f09-4c2b-8418-0e5b7f8e69dc",
+            "name": {
+                "de": "Psychiatrie",
+                "en": "Psychiatry"
+            },
+            "source": "central"
+        },
+        {
+            "id": "b3312a20-2ef0-4eec-823b-97cd86f01be5",
+            "name": {
+                "de": "Gastroenterologie",
+                "en": "Gastroenterology"
+            },
+            "source": "central"
+        },
+        {
+            "id": "a9a8bd61-1ae6-4138-b5be-7f865b00e5ce",
+            "name": {
+                "de": "Urologie",
+                "en": "Urology"
+            },
+            "source": "central"
+        },
+        {
+            "id": "8029f14a-bf69-4e56-a74e-f319e10c4de8",
+            "name": {
+                "de": "Gynäkologie",
+                "en": "Gynecology"
+            },
+            "source": "central"
+        },
+        {
+            "id": "e29242d3-1c1f-4416-a899-7332c3b2c364",
+            "name": {
+                "de": "Endokrinologie",
+                "en": "Endocrinology"
+            },
+            "source": "central"
+        },
+        {
+            "id": "7026d77a-f49a-4f50-980f-1e6b09b2c1d6",
+            "name": {
+                "de": "Onkologie",
+                "en": "Oncology"
+            },
+            "source": "central"
+        },
+        {
+            "id": "7b42ec6a-09a2-496a-bafd-fb87a3f491e6",
+            "name": {
+                "de": "Pneumologie",
+                "en": "Pulmonology"
+            },
+            "source": "central"
+        },
+        {
+            "id": "e0b56a55-d771-43b4-9e6a-295e80b9b4b6",
+            "name": {
+                "de": "Nephrologie",
+                "en": "Nephrology"
+            },
+            "source": "central"
+        },
+        {
+            "id": "e3b9b472-3ee3-4b36-9f5e-32df1e0a2a78",
+            "name": {
+                "de": "Rheumatologie",
+                "en": "Rheumatology"
+            },
+            "source": "central"
+        },
+        {
+            "id": "d6457b7b-f57c-4c55-8d07-c02a0e5fa738",
+            "name": {
+                "de": "Hämatologie",
+                "en": "Hematology"
+            },
+            "source": "central"
+        },
+        {
+            "id": "b3a62aa3-0ab4-49d8-bd94-15ef77f8607d",
+            "name": {
+                "de": "Augenheilkunde",
+                "en": "Ophthalmology"
+            },
+            "source": "central"
+        },
+        {
+            "id": "a420a252-0a8a-4c6f-bf37-1826881deeb4",
+            "name": {
+                "de": "Hals-Nasen-Ohren-Heilkunde",
+                "en": "Otorhinolaryngology"
+            },
+            "source": "central"
+        },
+        {
+            "id": "4f6bb8e6-8431-466a-8c4e-9972e648e79a",
+            "name": {
+                "de": "Anästhesiologie",
+                "en": "Anesthesiology"
+            },
+            "source": "central"
+        },
+        {
+            "id": "c08d8d69-61ff-45d7-80ec-3e6762b2eddf",
+            "name": {
+                "de": "Immunologie",
+                "en": "Immunology"
+            },
+            "source": "central"
+        }
+    ]
+}

@@ -1,0 +1,94 @@
+# 1. Behandlungsvertrag
+
+Zwischen
+
+[[FIRSTNAME]] [[LASTNAME]]
+[[STREET]]
+[[POSTALCODE]] [[CITY]]
+(im folgenden Patient)
+
+und
+
+[[PRACTICE_NAME]]
+[[PRACTICE_STREET]]
+[[PRACTICE_POSTALCODE]] [[PRACTICE_CITY]]
+Telefon: [[PRACTICE_PHONE]]
+Mail: [[PRACTICE_EMAIL]]
+(im folgenden Physiotherapeut)
+
+wird der folgende Behandlungsvertrag geschlossen.
+
+
+
+# 2. Behandlung
+
+Die physiotherapeutischen Behandlungen erfolgen nach dem Prinzip der evidenzbasierten Praxis. Dabei fließen aktuelle wissenschaftliche Erkenntnisse, meine praktische Erfahrung sowie Ihre persönlichen Bedürfnisse und Ziele gleichermaßen in die Therapieplanung und -durchführung ein.
+
+Zur Qualitätssicherung dokumentiere ich den Behandlungsverlauf und die erzielten Ergebnisse systematisch. 
+Diese faktenbasierte Auswertung ermöglicht es, die Therapie individuell anzupassen und die Wirksamkeit der Maßnahmen kontinuierlich zu überprüfen und weiter zu optimieren – für eine bestmögliche Unterstützung auf Ihrem Weg zur Genesung.
+
+---PAGEBREAK---
+# 3. Kosten und Zahlung
+
+Die Kosten pro Behandlungseinheit werden vor Beginn der Therapie transparent mit Ihnen besprochen. 
+Da keine verbindliche Gebührenordnung für physiotherapeutische Leistungen bei Privatpatienten besteht, richtet sich die Vergütung nach den gesetzlichen Bestimmungen des Bürgerlichen Gesetzbuches (§§ 611 ff. BGB) zum Dienstvertrag.
+
+Eine Übersicht meiner Leistungen und aktuellen Preise finden Sie auf meiner Website. Die Abrechnung erfolgt individuell auf Grundlage der durchgeführten Therapie. Alle Rechnungen sind innerhalb von 14 Tagen ohne Abzug zahlbar.
+
+Bitte beachten Sie, dass die vertragliche Beziehung ausschließlich zwischen Ihnen und Athletic Performance besteht. 
+Zwischen Ihrer privaten Krankenversicherung und Athletic Performance besteht kein Vertragsverhältnis. Die mögliche (Teil-)Erstattung durch Ihre Versicherung liegt in Ihrer Verantwortung und hat keinen Einfluss auf Ihre Zahlungspflicht gegenüber mir.
+
+
+
+# 4. Termine und Absagen
+
+Behandlungen finden ausschließlich nach vorheriger Terminabsprache statt. 
+Ich bitte Sie, pünktlich zu erscheinen, um einen reibungslosen Ablauf zu gewährleisten.
+
+Sollten Sie einen vereinbarten Termin nicht wahrnehmen können, sagen Sie ihn bitte mindestens 24 Stunden im Voraus ab. Spätere Absagen oder ein Nichterscheinen ohne rechtzeitige Mitteilung führen dazu, dass die ausgefallene Behandlungseinheit gemäß dem vereinbarten Vergütungssatz in Rechnung gestellt wird.
+
+Mit Ihrer Unterschrift unter den Behandlungsvertrag erkennen Sie diese Regelung ausdrücklich an.
+
+**Bitte beachten Sie:**
+Vereinbarte Termine sind verbindlich. Eine Absage ist unkompliziert telefonisch, per SMS oder per E-Mail möglich.
+
+---PAGEBREAK---
+# 5. Patientenaufklärung und -mitwirkung
+
+Vor Beginn der Behandlung besprechen wir gemeinsam die Therapieziele, geplante Maßnahmen, den Ablauf sowie eventuell bestehende Risiken. 
+
+Bitte informieren Sie mich über alle bestehenden Erkrankungen oder körperlichen Einschränkungen, die für die Therapie relevant sein könnten. 
+Nur mit vollständigen Angaben zu Ihrer gesundheitlichen Situation kann eine sichere und individuell angepasste Behandlung gewährleistet werden.
+
+Ich führe jede Behandlung mit größter Sorgfalt sowie nach bestem Wissen und Gewissen durch. Wie bei allen medizinischen Maßnahmen kann ein konkreter Behandlungserfolg jedoch nicht garantiert werden.
+
+
+
+# 6. Datenschutz
+
+Im Rahmen Ihrer Behandlung werden persönliche Daten wie Name, Adresse, Telefonnummer sowie gesundheitsbezogene Informationen erhoben und gespeichert. 
+Diese Daten werden ausschließlich zur Durchführung der Therapie und zur Abrechnung verwendet – eine Weitergabe an Dritte erfolgt nicht.
+
+**Ihre Rechte als Patientin/Patient:**
+Sie haben jederzeit das Recht, Auskunft über die zu Ihrer Person gespeicherten Daten zu erhalten. 
+Sie können die Berichtigung unrichtiger Daten oder – sofern gesetzlich zulässig – die Löschung Ihrer Daten beantragen.
+
+Selbstverständlich werden alle gesetzlichen Vorgaben zur Aufbewahrung von Behandlungsunterlagen eingehalten. Aktuell beträgt die gesetzlich vorgeschriebene Aufbewahrungsfrist 10 Jahre nach Abschluss der Behandlung.
+
+**Elektronische Übermittlung von Unterlagen:**
+Auf Wunsch können Ihnen der Behandlungsvertrag sowie alle Therapieinformationen auch per E-Mail in verschlüsselter Form zugesandt werden. 
+Das Kennwort zum Öffnen der Dokumente wird Ihnen aus Sicherheitsgründen separat, beispielsweise per SMS, übermittelt.
+
+---PAGEBREAK---
+# 7. Schlussbestimmungen
+
+Die Regelungen dieses Behandlungsvertrags gelten für sämtliche privatärztlichen Verordnungen, die Sie der Praxis im Rahmen Ihrer Behandlung übergeben. 
+Gleiches gilt für Behandlungen, die ohne ärztliche Verordnung in Anspruch genommen werden.
+
+Änderungen, Ergänzungen oder Erweiterungen der vereinbarten Maßnahmen, Vorgehensweisen oder Zielsetzungen bedürfen der schriftlichen Vereinbarung.
+
+Es gilt deutsches Recht. Gerichtsstand ist Idstein.
+
+
+[[PLACE_DATE]]
+[[SIGNATURES]]

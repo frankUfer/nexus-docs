@@ -1,0 +1,281 @@
+{
+    "version": 1,
+    "items": [
+        {
+            "bodyRegions": [
+                {
+                    "region_de": "Kopf & Halswirbelsäule",
+                    "region_en": "Head & Cervical Spine",
+                    "parts": [
+                        {
+                            "de": "Schädel",
+                            "en": "Skull"
+                        },
+                        {
+                            "de": "Kiefergelenk",
+                            "en": "Temporomandibular joint"
+                        },
+                        {
+                            "de": "Halswirbelsäule",
+                            "en": "Cervical spine"
+                        },
+                        {
+                            "de": "Nacken",
+                            "en": "Neck"
+                        }
+                    ]
+                },
+                {
+                    "region_de": "Brustkorb & obere BWS",
+                    "region_en": "Thorax & Upper Thoracic Spine",
+                    "parts": [
+                        {
+                            "de": "Brustwirbelsäule",
+                            "en": "Thoracic spine"
+                        },
+                        {
+                            "de": "Rippen",
+                            "en": "Ribs"
+                        },
+                        {
+                            "de": "Brustbein",
+                            "en": "Sternum"
+                        },
+                        {
+                            "de": "Zwerchfell",
+                            "en": "Diaphragm"
+                        }
+                    ]
+                },
+                {
+                    "region_de": "Schulter & obere Extremität",
+                    "region_en": "Shoulder & Upper Limb",
+                    "parts": [
+                        {
+                            "de": "Schultergelenk",
+                            "en": "Shoulder joint"
+                        },
+                        {
+                            "de": "Schulterblatt",
+                            "en": "Scapula"
+                        },
+                        {
+                            "de": "Schlüsselbein",
+                            "en": "Clavicle"
+                        },
+                        {
+                            "de": "Oberarm",
+                            "en": "Upper arm"
+                        },
+                        {
+                            "de": "Ellenbogen",
+                            "en": "Elbow"
+                        },
+                        {
+                            "de": "Unterarm",
+                            "en": "Forearm"
+                        },
+                        {
+                            "de": "Handgelenk",
+                            "en": "Wrist"
+                        },
+                        {
+                            "de": "Hand & Finger",
+                            "en": "Hand & Fingers"
+                        }
+                    ]
+                },
+                {
+                    "region_de": "Rumpf & LWS",
+                    "region_en": "Trunk & Lumbar Spine",
+                    "parts": [
+                        {
+                            "de": "Lendenwirbelsäule",
+                            "en": "Lumbar spine"
+                        },
+                        {
+                            "de": "Kreuzbein",
+                            "en": "Sacrum"
+                        },
+                        {
+                            "de": "Iliosakralgelenk",
+                            "en": "Sacroiliac joint"
+                        },
+                        {
+                            "de": "Becken",
+                            "en": "Pelvis"
+                        },
+                        {
+                            "de": "Hüfte",
+                            "en": "Hip joint"
+                        },
+                        {
+                            "de": "Bauchmuskulatur",
+                            "en": "Abdominal muscles"
+                        }
+                    ]
+                },
+                {
+                    "region_de": "Untere Extremität",
+                    "region_en": "Lower Limb",
+                    "parts": [
+                        {
+                            "de": "Oberschenkel",
+                            "en": "Thigh"
+                        },
+                        {
+                            "de": "Kniegelenk",
+                            "en": "Knee joint"
+                        },
+                        {
+                            "de": "Unterschenkel",
+                            "en": "Lower leg"
+                        },
+                        {
+                            "de": "Sprunggelenk",
+                            "en": "Ankle joint"
+                        },
+                        {
+                            "de": "Fuß & Zehen",
+                            "en": "Foot & Toes"
+                        }
+                    ]
+                }
+            ],
+            "fasciaRegions": [
+                {
+                    "region_de": "Rückenfaszie",
+                    "region_en": "Back fascia",
+                    "fasciae": [
+                        {
+                            "de": "Thorakolumbale Faszie",
+                            "en": "Thoracolumbar fascia"
+                        },
+                        {
+                            "de": "Nackenfaszie",
+                            "en": "Nuchal fascia"
+                        }
+                    ]
+                },
+                {
+                    "region_de": "Faszien der unteren Extremität",
+                    "region_en": "Lower limb fasciae",
+                    "fasciae": [
+                        {
+                            "de": "Fascia lata",
+                            "en": "Fascia lata"
+                        },
+                        {
+                            "de": "Plantarfaszie",
+                            "en": "Plantar fascia"
+                        }
+                    ]
+                },
+                {
+                    "region_de": "Faszien der oberen Extremität",
+                    "region_en": "Upper limb fasciae",
+                    "fasciae": [
+                        {
+                            "de": "Brachiale Faszie",
+                            "en": "Brachial fascia"
+                        },
+                        {
+                            "de": "Palmaraponeurose",
+                            "en": "Palmar aponeurosis"
+                        }
+                    ]
+                }
+            ],
+            "myofascialChains": [
+                {
+                    "de": "Oberflächliche Rückenlinie",
+                    "en": "Superficial Back Line"
+                },
+                {
+                    "de": "Oberflächliche Frontallinie",
+                    "en": "Superficial Front Line"
+                },
+                {
+                    "de": "Laterallinie",
+                    "en": "Lateral Line"
+                },
+                {
+                    "de": "Spirallinie",
+                    "en": "Spiral Line"
+                },
+                {
+                    "de": "Tiefe Frontallinie",
+                    "en": "Deep Front Line"
+                },
+                {
+                    "de": "Armlinien",
+                    "en": "Arm Lines"
+                },
+                {
+                    "de": "Funktionslinien",
+                    "en": "Functional Lines"
+                }
+            ],
+            "neurologicalAreas": [
+                {
+                    "de": "Plexus brachialis",
+                    "en": "Brachial plexus"
+                },
+                {
+                    "de": "Plexus lumbalis",
+                    "en": "Lumbar plexus"
+                },
+                {
+                    "de": "Plexus sacralis",
+                    "en": "Sacral plexus"
+                },
+                {
+                    "de": "N. ischiadicus",
+                    "en": "Sciatic nerve"
+                },
+                {
+                    "de": "N. medianus",
+                    "en": "Median nerve"
+                },
+                {
+                    "de": "Dermatome",
+                    "en": "Dermatomes"
+                },
+                {
+                    "de": "Myotome",
+                    "en": "Myotomes"
+                }
+            ],
+            "functionalUnits": [
+                {
+                    "de": "Kopf-Hals-Komplex",
+                    "en": "Head-Neck Complex"
+                },
+                {
+                    "de": "Schulter-Nacken-Komplex",
+                    "en": "Shoulder-Neck Complex"
+                },
+                {
+                    "de": "Thorakolumbaler Übergang",
+                    "en": "Thoracolumbar junction"
+                },
+                {
+                    "de": "Lumbopelviner Komplex",
+                    "en": "Lumbopelvic Complex"
+                },
+                {
+                    "de": "Becken-Hüfte-Knie-Achse",
+                    "en": "Pelvis-Hip-Knee Axis"
+                },
+                {
+                    "de": "Fuß-Knie-Hüfte-Kette",
+                    "en": "Foot-Knee-Hip Chain"
+                },
+                {
+                    "de": "Core-Stabilität",
+                    "en": "Core Stability"
+                }
+            ]
+        }
+    ]
+}

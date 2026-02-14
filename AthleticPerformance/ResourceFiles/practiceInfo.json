@@ -1,0 +1,224 @@
+{
+  "items" : [
+    {
+      "address" : {
+        "city" : "Idstein",
+        "country" : "Deutschland",
+        "isBillingAddress" : false,
+        "postalCode" : "65510",
+        "street" : "Charlotte-Rosenthal-Straße 11"
+      },
+      "bank" : "ING-DiBa",
+      "bic" : "INGDDEFFXXX",
+      "email" : "info@ap-ufer.com",
+      "iban" : "DE76 5001 0517 5449 0405 63",
+      "id" : 1,
+      "name" : "Athletic Performance by Marc Ufer",
+      "phone" : "0157 3948 1760‬",
+      "services" : [
+        {
+          "billingCode" : "30101",
+          "de" : "Krankengymnastik",
+          "en" : "Physiotherapy",
+          "id" : "KG",
+          "internalId" : "A0DCEB0F-D874-4D1D-BC20-CA2840F47804",
+          "isBillable" : true,
+          "price" : 35,
+          "quantity" : 20,
+          "unit" : "Min"
+        },
+        {
+          "billingCode" : "30201",
+          "de" : "Neuro-Krankengymnastik",
+          "en" : "Neuro-Physiotherapy",
+          "id" : "KG-neuro-30",
+          "internalId" : "466E2469-7401-4CBC-B2E3-5B0E9A0EA199",
+          "isBillable" : true,
+          "price" : 53,
+          "quantity" : 30,
+          "unit" : "Min"
+        },
+        {
+          "billingCode" : "30701",
+          "de" : "Manuelle Therapie",
+          "en" : "Manual Therapy",
+          "id" : "MT",
+          "internalId" : "8A66195E-D236-45B6-8C55-DE0A574F1929",
+          "isBillable" : true,
+          "price" : 40,
+          "quantity" : 20,
+          "unit" : "Min"
+        },
+        {
+          "billingCode" : "40101",
+          "de" : "Klassische Massagetherapie",
+          "en" : "Classical Massage Therapy",
+          "id" : "KMT",
+          "internalId" : "420AB2E7-94E3-404C-80AC-DF1E2058B40E",
+          "isBillable" : true,
+          "price" : 32,
+          "quantity" : 20,
+          "unit" : "Min"
+        },
+        {
+          "billingCode" : "50101",
+          "de" : "Manuelle Lymphdrainage",
+          "en" : "Manual Lymphatic Drainage",
+          "id" : "MLD20",
+          "internalId" : "0A373ACE-3543-41EF-B785-FDA5DC4E89B0",
+          "isBillable" : true,
+          "price" : 35,
+          "quantity" : 20,
+          "unit" : "Min"
+        },
+        {
+          "billingCode" : "",
+          "de" : "Personal Training",
+          "en" : "Personal Training",
+          "id" : "PT-60",
+          "internalId" : "3D4FF408-D5AA-4BB8-B469-67E51E1787FF",
+          "isBillable" : true,
+          "price" : 105,
+          "quantity" : 60,
+          "unit" : "Min"
+        },
+        {
+          "billingCode" : "",
+          "de" : "Hausbesuch",
+          "en" : "House call",
+          "id" : "HB",
+          "internalId" : "7CD70CF5-BD16-49D6-A195-EECBA75841E9",
+          "isBillable" : true,
+          "price" : 20,
+          "quantity" : 1,
+          "unit" : "Session"
+        },
+        {
+          "de" : "Heiße Rolle",
+          "en" : "",
+          "id" : "HR",
+          "internalId" : "DA156E85-9D91-4671-BA68-7AC31F5694CB",
+          "isBillable" : true,
+          "price" : 18,
+          "quantity" : 10,
+          "unit" : "Min"
+        },
+        {
+          "de" : "KG-Neuro Doppelbehandlung",
+          "en" : "",
+          "id" : "KG-Neuro Doppel",
+          "internalId" : "2BCB0216-A3A6-4069-A98F-D1E8CBBAFD6D",
+          "isBillable" : true,
+          "price" : 106,
+          "quantity" : 60,
+          "unit" : "Min"
+        },
+        {
+          "de" : "Ersttermin",
+          "en" : "",
+          "id" : "Erst.",
+          "internalId" : "543EDB23-7AA1-47EC-8124-C54464A38627",
+          "isBillable" : true,
+          "quantity" : 60,
+          "unit" : "Min"
+        },
+        {
+          "billingCode" : "",
+          "de" : "Personal Training 90 Minuten",
+          "en" : "",
+          "id" : "PT-90",
+          "internalId" : "AC87766C-E3F4-4558-B9EB-7811F44858F8",
+          "isBillable" : true,
+          "price" : 157.5,
+          "quantity" : 90,
+          "unit" : "Min"
+        },
+        {
+          "billingCode" : "50301",
+          "de" : "Krankengymnastik am Gerät",
+          "en" : "",
+          "id" : "KGG",
+          "internalId" : "D0C9AB8B-51DE-4131-A849-C8BC0EBDA84A",
+          "isBillable" : true,
+          "price" : 60,
+          "quantity" : 60,
+          "unit" : "Min"
+        },
+        {
+          "billingCode" : "50101",
+          "de" : "Manuelle Lymphdrainage",
+          "en" : "",
+          "id" : "MLD30",
+          "internalId" : "A5B3F6FB-A985-446B-A803-999C750F8AA9",
+          "isBillable" : true,
+          "price" : 52.5,
+          "quantity" : 30,
+          "unit" : "Min"
+        },
+        {
+          "billingCode" : "30101",
+          "de" : "Krankengymnastik Doppeltermin",
+          "en" : "",
+          "id" : "KG-Doppel",
+          "internalId" : "6C4FD882-B979-4FF6-88F6-793C2644636D",
+          "isBillable" : true,
+          "price" : 70,
+          "quantity" : 40,
+          "unit" : "Min"
+        },
+        {
+          "billingCode" : "30701",
+          "de" : "Manuelle Theraphie(30 Min)",
+          "en" : "",
+          "id" : "MT-30",
+          "internalId" : "44932C91-D09A-4B7C-B31E-0D9450ACFE33",
+          "isBillable" : true,
+          "price" : 60,
+          "quantity" : 30,
+          "unit" : "Min"
+        },
+        {
+          "billingCode" : "30601",
+          "de" : "Kältetherapie",
+          "en" : "",
+          "id" : "KT",
+          "internalId" : "59868E9E-C931-45DF-840C-587A42A436AF",
+          "isBillable" : true,
+          "price" : 17,
+          "quantity" : 10,
+          "unit" : "Min"
+        },
+        {
+          "billingCode" : "30501",
+          "de" : "Elektortherapie",
+          "en" : "",
+          "id" : "ET",
+          "internalId" : "FCC14DDF-5D1C-4133-BE1B-A1DF7DF8D422",
+          "isBillable" : true,
+          "price" : 14,
+          "quantity" : 10,
+          "unit" : "Min"
+        }
+      ],
+      "startAddress" : {
+        "city" : "Idstein",
+        "country" : "Deutschland",
+        "isBillingAddress" : false,
+        "postalCode" : "65510",
+        "street" : "Holunderweg 1"
+      },
+      "taxNumber" : "004 876 01008",
+      "therapists" : [
+        {
+          "email" : "marc@ap-ufer.com",
+          "firstname" : "Marc",
+          "id" : 1,
+          "isActive" : true,
+          "lastname" : "Ufer"
+        }
+      ],
+      "website" : "www.ap-ufer.com"
+    }
+  ],
+  "version" : 1
+}

@@ -1,0 +1,55 @@
+{
+    "version": 1,
+    "items": [
+        {
+            "id": "8f1d7c62-e14a-4a6f-99ed-3f03a1f212d0",
+            "de": "Epithelgewebe",
+            "en": "Epithelial tissue"
+        },
+        {
+            "id": "2731ab91-cd40-4f9d-8bfc-8e3f5cf0f291",
+            "de": "Bindegewebe",
+            "en": "Connective tissue"
+        },
+        {
+            "id": "80dd537f-8e07-4625-8c9a-160f1c06494d",
+            "de": "Fettgewebe",
+            "en": "Adipose tissue"
+        },
+        {
+            "id": "0b91838d-8ac0-4961-88cb-0e41668fa879",
+            "de": "Knorpelgewebe",
+            "en": "Cartilage tissue"
+        },
+        {
+            "id": "53c7a34c-d36e-4c64-aed5-f24c8dcd2e3f",
+            "de": "Knochengewebe",
+            "en": "Bone tissue"
+        },
+        {
+            "id": "92fdfda8-5a7b-4d73-b4c9-10e4d5c6d6d3",
+            "de": "Muskelgewebe",
+            "en": "Muscle tissue"
+        },
+        {
+            "id": "207b5cd7-4aa4-4a30-89a3-c10500abf346",
+            "de": "Nervengewebe",
+            "en": "Nervous tissue"
+        },
+        {
+            "id": "5fce52e3-5071-4f70-b273-b38899b6f7f4",
+            "de": "Blutgewebe",
+            "en": "Blood tissue"
+        },
+        {
+            "id": "b509c519-c994-4308-920e-4c57efb66cc1",
+            "de": "Lymphatisches Gewebe",
+            "en": "Lymphatic tissue"
+        },
+        {
+            "id": "2a7d4fc9-466b-4c17-a370-cabdcbd18a7e",
+            "de": "Retikuläres Bindegewebe",
+            "en": "Reticular connective tissue"
+        }
+    ]
+}

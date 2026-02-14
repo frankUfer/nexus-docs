@@ -1,0 +1,100 @@
+# 1. Therapievereinbarung
+
+Zwischen
+
+[[FIRSTNAME]] [[LASTNAME]]
+[[STREET]]
+[[POSTALCODE]] [[CITY]]
+(im folgenden Patient)
+
+und
+
+[[PRACTICE_NAME]]
+[[PRACTICE_STREET]]
+[[PRACTICE_POSTALCODE]] [[PRACTICE_CITY]]
+Telefon: [[PRACTICE_PHONE]]
+Mail: [[PRACTICE_EMAIL]]
+(im folgenden Physiotherapeut)
+
+wird die folgende Therapievereinbarung geschlossen.
+
+
+
+# 2. Zielsetzung der Therapie
+
+Das gemeinsame Ziel dieser Therapie ist:
+[[GOAL_OF_THERAPY]]
+
+---PAGEBREAK---
+# 3. Geplante Maßnahmen und Terminplanung
+
+Zur Erreichung des Therapieziels werden folgende Maßnahmen durchgeführt:
+[[TREATMENTS]]
+
+
+Behandlungen finden ausschließlich nach vorheriger Terminabsprache statt. Die Termine werden gemeinsam mit Ihnen festgelegt.
+Ein regelmäßiger Rhythmus ist entscheidend für den Erfolg Ihrer Therapie. Daher legen wir nach Möglichkeit alle Termine frühzeitig gemeinsam fest.
+
+Die vereinbarten Termine erhalten Sie per E-Mail als ICS-Datei. Diese können Sie bequem in Ihren digitalen Kalender übernehmen.
+Jeder Termin enthält eine automatische Erinnerung 25 Stunden im Voraus, um Sie rechtzeitig auf die anstehende Sitzungen aufmerksam zu machen.
+
+Bitte erscheinen Sie pünktlich zu Ihren Terminen, um einen reibungslosen Ablauf zu ermöglichen.
+
+**Absagen:**
+Sollten Sie einen Termin nicht wahrnehmen können, sagen Sie diesen bitte mindestens 24 Stunden im Voraus ab. Eine Absage ist unkompliziert telefonisch, per SMS oder per E-Mail möglich.
+Bei späterer Absage oder Nichterscheinen ohne rechtzeitige Mitteilung wird die ausgefallene Behandlungseinheit gemäß dem vereinbarten Vergütungssatz in Rechnung gestellt.
+
+Selbstverständlich können die Termine im Verlauf angepasst werden, sofern der Heilungsverlauf oder andere Umstände dies erforderlich machen.
+
+---PAGEBREAK---
+# 4. Kosten und Zahlung
+
+Im Rahmen dieser Therapievereinbarung werden die geplanten physiotherapeutischen Maßnahmen sowie die dazugehörigen Vergütungssätze verbindlich festgelegt. 
+Die Abrechnung erfolgt auf Grundlage des Bürgerlichen Gesetzbuches (BGB), insbesondere der Regelungen zum Dienstvertrag (§§ 611 ff. BGB).
+
+Die folgenden Maßnahmen sind Bestandteil der vereinbarten Therapie:
+
+[[REMEDIES_OF_THERAPY]]
+
+
+Die Rechnungsstellung erfolgt wie vereinbart [[INVOICING_TERMS]].
+Alle Rechnungen sind innerhalb von 14 Tagen nach Erhalt ohne Abzug zu begleichen.
+
+Bitte beachten Sie, dass die vertragliche Beziehung ausschließlich zwischen Ihnen und Athletic Performance besteht. Zwischen Ihrer privaten Krankenversicherung und Athletic Performance besteht kein Vertragsverhältnis. Die mögliche (Teil-)Erstattung durch Ihre Versicherung liegt in Ihrer Verantwortung und hat keinen Einfluss auf Ihre Zahlungspflicht gegenüber mir.
+
+---PAGEBREAK---
+# 5. Patientenaufklärung und -mitwirkung
+
+Die Durchführung physiotherapeutischer Maßnahmen kann, abhängig von Ihrer individuellen Situation, gelegentlich zu vorübergehenden Beschwerden wie Schmerzen, Schwellungen oder Bewegungseinschränkungen führen. In sehr seltenen Fällen können weitere Reaktionen auftreten.
+
+Bitte informieren Sie mich umgehend, falls ungewöhnliche Beschwerden auftreten.
+
+Ein erfolgreicher Therapieverlauf hängt wesentlich von Ihrer aktiven Mitwirkung ab. Dazu gehören unter anderem:
+
+* Die regelmäßige Wahrnehmung vereinbarter Termine.
+
+* Das eigenständige Durchführen von empfohlenen Übungen.
+
+* Das offene Ansprechen von Fragen oder Veränderungen Ihres Befinden.
+
+[[RISKS_OF_THERAPY]]
+
+---PAGEBREAK---
+# 6. Datenschutz
+
+Im Rahmen Ihrer Behandlung werden persönliche Daten wie Name, Adresse, Telefonnummer sowie gesundheitsbezogene Informationen erhoben und gespeichert. 
+Diese Daten werden ausschließlich zur Durchführung der Therapie und zur Abrechnung verwendet – eine Weitergabe an Dritte erfolgt nicht.
+
+**Ihre Rechte als Patientin/Patient:**
+Sie haben jederzeit das Recht, Auskunft über die zu Ihrer Person gespeicherten Daten zu erhalten.
+Sie können die Berichtigung unrichtiger Daten oder – sofern gesetzlich zulässig – die Löschung Ihrer Daten beantragen.
+
+Selbstverständlich werden alle gesetzlichen Vorgaben zur Aufbewahrung von Behandlungsunterlagen eingehalten. Aktuell beträgt die gesetzlich vorgeschriebene Aufbewahrungsfrist 10 Jahre nach Abschluss der Behandlung.
+
+**Elektronische Übermittlung von Unterlagen:**
+Auf Wunsch kann Ihnen die Therapievereinbarung auch per E-Mail in verschlüsselter Form zugesandt werden. 
+Das Kennwort zum Öffnen der Dokumente wird Ihnen aus Sicherheitsgründen separat, beispielsweise per SMS, übermittelt.
+
+
+[[PLACE_DATE]]
+[[SIGNATURES]]

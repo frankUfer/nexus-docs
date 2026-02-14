@@ -1,0 +1,219 @@
+{
+    "version": 1,
+    "items": [
+        {
+            "diagnoseCategories": [
+                {
+                    "category_de": "Strukturelle Verletzungen",
+                    "category_en": "Structural Injuries",
+                    "terms": [
+                        {
+                            "de": "Zerrung",
+                            "en": "Strain"
+                        },
+                        {
+                            "de": "Dehnung",
+                            "en": "Overstretching"
+                        },
+                        {
+                            "de": "Riss",
+                            "en": "Tear / Rupture"
+                        },
+                        {
+                            "de": "Bänderriss",
+                            "en": "Ligament tear"
+                        },
+                        {
+                            "de": "Sehnenriss",
+                            "en": "Tendon rupture"
+                        },
+                        {
+                            "de": "Muskelriss",
+                            "en": "Muscle tear"
+                        },
+                        {
+                            "de": "Prellung",
+                            "en": "Contusion / Bruise"
+                        },
+                        {
+                            "de": "Knochenbruch",
+                            "en": "Fracture"
+                        },
+                        {
+                            "de": "Ermüdungsbruch",
+                            "en": "Stress fracture"
+                        },
+                        {
+                            "de": "Luxation",
+                            "en": "Dislocation"
+                        },
+                        {
+                            "de": "Subluxation",
+                            "en": "Subluxation"
+                        }
+                    ]
+                },
+                {
+                    "category_de": "Entzündungen und Reizungen",
+                    "category_en": "Inflammations and Irritations",
+                    "terms": [
+                        {
+                            "de": "Sehnenentzündung",
+                            "en": "Tendinitis"
+                        },
+                        {
+                            "de": "Schleimbeutelentzündung",
+                            "en": "Bursitis"
+                        },
+                        {
+                            "de": "Gelenkentzündung",
+                            "en": "Arthritis"
+                        },
+                        {
+                            "de": "Muskelentzündung",
+                            "en": "Myositis"
+                        },
+                        {
+                            "de": "Knochenhautentzündung",
+                            "en": "Periostitis"
+                        },
+                        {
+                            "de": "Nervenentzündung",
+                            "en": "Neuritis"
+                        },
+                        {
+                            "de": "Überlastungssyndrom",
+                            "en": "Overuse syndrome"
+                        },
+                        {
+                            "de": "Reizung",
+                            "en": "Irritation"
+                        }
+                    ]
+                },
+                {
+                    "category_de": "Degenerative / chronische Zustände",
+                    "category_en": "Degenerative / Chronic Conditions",
+                    "terms": [
+                        {
+                            "de": "Arthrose",
+                            "en": "Osteoarthritis"
+                        },
+                        {
+                            "de": "Bandscheibenvorfall",
+                            "en": "Disc herniation"
+                        },
+                        {
+                            "de": "Spinalkanalstenose",
+                            "en": "Spinal canal stenosis"
+                        },
+                        {
+                            "de": "Tendinose",
+                            "en": "Tendinosis"
+                        },
+                        {
+                            "de": "Sehnendegeneration",
+                            "en": "Tendon degeneration"
+                        },
+                        {
+                            "de": "Instabilität",
+                            "en": "Instability"
+                        },
+                        {
+                            "de": "Muskelatrophie",
+                            "en": "Muscle atrophy"
+                        }
+                    ]
+                },
+                {
+                    "category_de": "Schmerzzustände / funktionelle Beschwerden",
+                    "category_en": "Pain / Functional Complaints",
+                    "terms": [
+                        {
+                            "de": "Schmerz",
+                            "en": "Pain"
+                        },
+                        {
+                            "de": "Verspannung",
+                            "en": "Tension"
+                        },
+                        {
+                            "de": "Triggerpunkt",
+                            "en": "Trigger point"
+                        },
+                        {
+                            "de": "Bewegungseinschränkung",
+                            "en": "Limited mobility"
+                        },
+                        {
+                            "de": "Schwellung",
+                            "en": "Swelling"
+                        },
+                        {
+                            "de": "Hämatom",
+                            "en": "Hematoma"
+                        },
+                        {
+                            "de": "Sensibilitätsstörung",
+                            "en": "Sensory disturbance"
+                        },
+                        {
+                            "de": "Taubheit",
+                            "en": "Numbness"
+                        },
+                        {
+                            "de": "Kribbeln",
+                            "en": "Tingling"
+                        }
+                    ]
+                },
+                {
+                    "category_de": "Neurologisch-funktionelle Diagnosen",
+                    "category_en": "Neurological / Functional Diagnoses",
+                    "terms": [
+                        {
+                            "de": "Nervenkompression",
+                            "en": "Nerve compression"
+                        },
+                        {
+                            "de": "Radikulopathie",
+                            "en": "Radiculopathy"
+                        },
+                        {
+                            "de": "Plexusläsion",
+                            "en": "Plexus lesion"
+                        },
+                        {
+                            "de": "Lähmung",
+                            "en": "Paralysis"
+                        },
+                        {
+                            "de": "Paresen",
+                            "en": "Paresis"
+                        },
+                        {
+                            "de": "Muskelschwäche",
+                            "en": "Weakness"
+                        },
+                        {
+                            "de": "Koordinationsstörung",
+                            "en": "Coordination disorder"
+                        },
+                        {
+                            "de": "Spastik",
+                            "en": "Spasticity"
+                        },
+                        {
+                            "de": "Hypertonie",
+                            "en": "Hypertonia"
+                        },
+                        {
+                            "de": "Hypotonie",
+                            "en": "Hypotonia"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

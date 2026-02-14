@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "e02a80e1-bc34-44a6-9dd0-609b8a6f90c4",
+      "de": "Timed Up and Go Test",
+      "en": "Timed Up and Go Test"
+    },
+    {
+      "id": "cb6fa5f9-d9d1-4565-8e58-e96f6b42c342",
+      "de": "Berg-Balance-Skala",
+      "en": "Berg Balance Scale"
+    },
+    {
+      "id": "4939e9e5-8e1e-4972-8421-6baf1fef2cb8",
+      "de": "6-Minuten-Gehtest",
+      "en": "6-Minute Walk Test"
+    },
+    {
+      "id": "c478bb3b-3d36-4b40-a17b-4fcfb09c4605",
+      "de": "10-Meter-Gehtest",
+      "en": "10-Meter Walk Test"
+    },
+    {
+      "id": "31c72b8a-67c0-43cd-8e38-40aa5d8d6dc9",
+      "de": "Functional Reach Test",
+      "en": "Functional Reach Test"
+    },
+    {
+      "id": "89a44b25-9b12-4a95-85b7-9fd4dd01c99f",
+      "de": "Tinetti-Test",
+      "en": "Tinetti Assessment Tool"
+    },
+    {
+      "id": "7d3d6b9f-3190-4559-a2d2-c9dd88060dcd",
+      "de": "Funktioneller Bewegungs-Screen (FMS)",
+      "en": "Functional Movement Screen"
+    },
+    {
+      "id": "93b63f87-2277-4f3a-b69c-7ffac1b35810",
+      "de": "Spurling-Test",
+      "en": "Spurling's Test"
+    },
+    {
+      "id": "d79a6a77-c70d-4e9a-92dc-2bc0b6cc2a90",
+      "de": "Lasègue-Test (Straight Leg Raise)",
+      "en": "Straight Leg Raise Test"
+    },
+    {
+      "id": "76825330-f77f-4b6b-a295-e6e9b78b94e3",
+      "de": "Schober-Test",
+      "en": "Schober Test"
+    },
+    {
+      "id": "b3390d86-f6ea-4c7e-a7e3-5dfcd3e8b87f",
+      "de": "Manual Muscle Testing",
+      "en": "Manual Muscle Testing"
+    },
+    {
+      "id": "0892c2e6-4a75-4a1f-a2c5-f962e91f67b7",
+      "de": "VAS (Visuelle Analogskala)",
+      "en": "Visual Analogue Scale (VAS)"
+    },
+    {
+      "id": "d1220e94-b78a-4f1d-a47b-8f8f87b3fd21",
+      "de": "Numeric Rating Scale (NRS)",
+      "en": "Numeric Rating Scale (NRS)"
+    },
+    {
+      "id": "3e74af1f-b357-4ec6-beb8-79d1c2b0e12e",
+      "de": "Oswestry Disability Index",
+      "en": "Oswestry Disability Index"
+    },
+    {
+      "id": "c80b88b5-f7a1-4ad7-9227-efbb4b59c1df",
+      "de": "Neck Disability Index",
+      "en": "Neck Disability Index"
+    },
+    {
+      "id": "7af221f1-c45a-4f9a-b92f-c3ac93886e3b",
+      "de": "Beweglichkeitsmessung (Goniometrie)",
+      "en": "Range of Motion (Goniometry)"
+    },
+    {
+      "id": "ddc32b6e-6e3e-4322-bc88-b6b3301f22f1",
+      "de": "Handkraftmessung (Dynamometer)",
+      "en": "Grip Strength Test (Dynamometer)"
+    },
+    {
+      "id": "b20463ff-1f83-4d56-b89d-c6b5b85c05f2",
+      "de": "Functional Movement Screen (FMS)",
+      "en": "Functional Movement Screen (FMS)"
+    },
+    {
+      "id": "5c168146-5ed7-4a59-83ce-f7fe097285fd",
+      "de": "Y-Balance-Test",
+      "en": "Y Balance Test"
+    },
+    {
+      "id": "15e29913-0b8d-4147-9cbb-fabbb541e6db",
+      "de": "Single-Leg Hop Test",
+      "en": "Single Leg Hop Test"
+    },
+    {
+      "id": "788405aa-2401-4cf4-bc10-92cf4fcfe01c",
+      "de": "Triple Hop Test",
+      "en": "Triple Hop Test"
+    },
+    {
+      "id": "3569d52b-84b4-44d6-bf9c-e78716dcf60c",
+      "de": "Cross-Over Hop Test",
+      "en": "Cross-Over Hop Test"
+    },
+    {
+      "id": "7d5cfd20-621d-466d-b7a0-ec2c3045c8ec",
+      "de": "Illinois Agility Test",
+      "en": "Illinois Agility Test"
+    },
+    {
+      "id": "3c78c3c7-c6d4-4b6e-bf6f-c38f7c925a96",
+      "de": "T-Test (Agility)",
+      "en": "T-Test (Agility)"
+    },
+    {
+      "id": "67415e6f-f33b-489c-bdcb-3389469e67e2",
+      "de": "Star Excursion Balance Test (SEBT)",
+      "en": "Star Excursion Balance Test (SEBT)"
+    },
+    {
+      "id": "db73e169-b58b-4f1b-a4cb-07d44be4f487",
+      "de": "Isokinetische Kraftmessung",
+      "en": "Isokinetic Strength Testing"
+    },
+    {
+      "id": "bbddc7ee-7494-4f96-b327-dc174abe2312",
+      "de": "Core Stability Test",
+      "en": "Core Stability Test"
+    },
+    {
+      "id": "5b06bb6a-4cd6-4f95-82fd-e50b9d74f13d",
+      "de": "Vertical Jump Test",
+      "en": "Vertical Jump Test"
+    },
+    {
+      "id": "42b2f634-02e7-4e42-b6fc-f3084cd4f0dc",
+      "de": "Yo-Yo Intermittent Recovery Test",
+      "en": "Yo-Yo Intermittent Recovery Test"
+    },
+    {
+      "id": "7cfab5cd-75fa-44cb-920c-e27e33f2745c",
+      "de": "Borg-Skala (subjektive Anstrengung)",
+      "en": "Borg Scale (Perceived Exertion)"
+    },
+    {
+      "id": "e205d1a4-1637-4a49-aeaf-402f6f8e5887",
+      "de": "1-Repetition-Maximum (1RM)",
+      "en": "One Repetition Maximum (1RM)"
+    }
+  ]
+}

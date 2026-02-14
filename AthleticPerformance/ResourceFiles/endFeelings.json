@@ -1,0 +1,25 @@
+{
+    "version": 1,
+    "items": [
+        {
+            "id": "c15fdfb8-e8c6-4c8b-8b64-6d5b02c546f2",
+            "de": "hart",
+            "en": "hard"
+        },
+        {
+            "id": "f52df5a4-bd5c-474b-9642-11dd0e43b20c",
+            "de": "fest-elastisch",
+            "en": "firm-elastic"
+        },
+        {
+            "id": "a25c994e-08e4-44b3-b7a4-dce74a3f50ae",
+            "de": "weich-elastisch",
+            "en": "soft-elastic"
+        },
+        {
+            "id": "8e9f2fae-6f46-407e-b78c-1630e9628f04",
+            "de": "leer",
+            "en": "empty"
+        }
+    ]
+}

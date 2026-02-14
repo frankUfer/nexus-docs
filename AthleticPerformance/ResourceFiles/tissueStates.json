@@ -1,0 +1,75 @@
+{
+    "version": 1,
+    "items": [
+        {
+            "id": "8e1d2c3b-4c29-4a3c-8d2f-7754517ebc4c",
+            "de": "Kontraktion",
+            "en": "Contraction"
+        },
+        {
+            "id": "60a867f2-7c6c-4a93-b943-e7d401b7290c",
+            "de": "Entspannung",
+            "en": "Relaxation"
+        },
+        {
+            "id": "f0d9debc-62bb-4a94-a60f-9a69f79f1d0f",
+            "de": "Verklebung",
+            "en": "Adhesion"
+        },
+        {
+            "id": "9d4ec0d0-e65f-4df6-a98c-7b4a2d33a7f1",
+            "de": "Gleiten",
+            "en": "Gliding"
+        },
+        {
+            "id": "3b9b6f53-6f6f-4869-b3e4-435a6ff8ed9e",
+            "de": "Verkürzung",
+            "en": "Shortening"
+        },
+        {
+            "id": "f50e4b1e-97d9-40cd-bf8e-e144d0fc28d5",
+            "de": "Dehnung",
+            "en": "Stretching"
+        },
+        {
+            "id": "8c4b5466-9090-4b6b-b49b-2916e7a57894",
+            "de": "Zugspannung",
+            "en": "Tension"
+        },
+        {
+            "id": "d3795e53-8ff0-46d6-bd4e-1c6decaef439",
+            "de": "Kompression",
+            "en": "Compression"
+        },
+        {
+            "id": "0eec73b5-d206-4264-b44c-2ea2aa055755",
+            "de": "Torsion",
+            "en": "Torsion"
+        },
+        {
+            "id": "2cb77c59-210f-40aa-bdbf-19a28cba5f56",
+            "de": "Schwellung",
+            "en": "Swelling"
+        },
+        {
+            "id": "416f9d16-1d9e-4c89-baf4-780a7fc94de3",
+            "de": "Fibrosierung",
+            "en": "Fibrosis"
+        },
+        {
+            "id": "042ae1fc-33db-4cd6-ae58-9cbdfc72f2a3",
+            "de": "Narbenbildung",
+            "en": "Scarring"
+        },
+        {
+            "id": "d0382fc1-31cb-4d68-85f2-6a0b6aebf43b",
+            "de": "Dysbalance",
+            "en": "Imbalance"
+        },
+        {
+            "id": "314b3ff3-0b35-4d0d-9584-4db1fc19d1e2",
+            "de": "Fasziale Spannung",
+            "en": "Fascial tension"
+        }
+    ]
+}

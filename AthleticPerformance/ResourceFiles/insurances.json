@@ -1,0 +1,225 @@
+{
+    "version": 1,
+    "items": [
+        {
+            "id": "c2c16a8e-c1c5-4858-9cd4-6a5e7c80caa5",
+            "name": "",
+            "source": "central"
+        },
+        {
+            "id": "c2c16a8e-c1c5-4858-9cd4-6a5e7c80cfa1",
+            "name": "Allianz",
+            "source": "central"
+        },
+        {
+            "id": "c7a0fab0-6396-45be-8203-84e10a25601a",
+            "name": "Alte Oldenburger",
+            "source": "central"
+        },
+        {
+            "id": "81ae1989-4ca2-48dd-b4a0-7c2291998fa3",
+            "name": "ARAG",
+            "source": "central"
+        },
+        {
+            "id": "87ef31b1-dac2-4ecb-a0b0-11ae642a1a4c",
+            "name": "Augenoptiker Ausgleichskasse",
+            "source": "central"
+        },
+        {
+            "id": "030dd81c-fba8-47bc-954b-b0cdf3754670",
+            "name": "AXA",
+            "source": "central"
+        },
+        {
+            "id": "726bf111-6fe4-47ee-a2a7-aacc86d66314",
+            "name": "Barmenia",
+            "source": "central"
+        },
+        {
+            "id": "a45ff842-ded6-4654-9e8a-f59131e52af0",
+            "name": "Bayerische Beamtenkrankenkasse",
+            "source": "central"
+        },
+        {
+            "id": "b31d5a67-c78e-4278-9618-44182aa72449",
+            "name": "Concordia",
+            "source": "central"
+        },
+        {
+            "id": "e8bb5b48-8474-40bf-ba25-73e45ebe978b",
+            "name": "Continentale",
+            "source": "central"
+        },
+        {
+            "id": "61c85318-401f-497d-8338-4bab1de9f26d",
+            "name": "Debeka",
+            "source": "central"
+        },
+        {
+            "id": "0f5bab59-2cb7-4301-b652-f54f66bf8229",
+            "name": "DEVK",
+            "source": "central"
+        },
+        {
+            "id": "81d6d569-e6ed-410c-9606-f26701d9b5e2",
+            "name": "DKV",
+            "source": "central"
+        },
+        {
+            "id": "730b7d6a-5d9d-4a14-884b-5ef1d4c146cc",
+            "name": "Envivas",
+            "source": "central"
+        },
+        {
+            "id": "594a8af2-6ea5-43e8-b009-3223915d572f",
+            "name": "ERGO",
+            "source": "central"
+        },
+        {
+            "id": "c64bdabb-7ccd-484f-addd-9b7bb986bb14",
+            "name": "Freie Arzt- und Medizinkasse der Angehörigen der Berufsfeuerwehr und der Polizei",
+            "source": "central"
+        },
+        {
+            "id": "8a8327cd-34dd-4303-b652-76658644b6c6",
+            "name": "Generali",
+            "source": "central"
+        },
+        {
+            "id": "be11b289-a776-4280-bf36-b330b71d8f3c",
+            "name": "Gothaer",
+            "source": "central"
+        },
+        {
+            "id": "1a84617d-d777-4c14-80fb-b648c2577dd6",
+            "name": "Hallesche",
+            "source": "central"
+        },
+        {
+            "id": "8169a997-c6ec-4553-98c0-36f3b5280f59",
+            "name": "Hanse Merkur",
+            "source": "central"
+        },
+        {
+            "id": "ae2e03d4-6e59-45d3-bf36-ab47dec8d5d8",
+            "name": "HUK-Coburg",
+            "source": "central"
+        },
+        {
+            "id": "c824bf59-a40b-428c-af6f-3f82eba45134",
+            "name": "Inter",
+            "source": "central"
+        },
+        {
+            "id": "c0840695-4fbe-4aa0-8757-a1c47b750194",
+            "name": "Krankenunterstützungskasse der Berufsfeuerwehr Hannover",
+            "source": "central"
+        },
+        {
+            "id": "433d9f82-fbc8-4a67-b5f6-6fd2bb6cc617",
+            "name": "Landeskrankenhilfe (LKH)",
+            "source": "central"
+        },
+        {
+            "id": "92bce1b1-7652-4c47-a500-28751b52c996",
+            "name": "LIGA Krankenversicherung katholischer Priester",
+            "source": "central"
+        },
+        {
+            "id": "abc626a9-dd56-4996-9a9a-c21f387ae022",
+            "name": "Lohnfortzahlungskasse Aurich",
+            "source": "central"
+        },
+        {
+            "id": "cc2d7d68-4e62-406a-903a-ea11f3af018e",
+            "name": "Lohnfortzahlungskasse Leer",
+            "source": "central"
+        },
+        {
+            "id": "b5fefaa9-4ca8-46b2-93e6-52c2c0e546c1",
+            "name": "LVM",
+            "source": "central"
+        },
+        {
+            "id": "54028e05-e3ef-4e0b-8b1c-ba14e41176eb",
+            "name": "Mecklenburgische",
+            "source": "central"
+        },
+        {
+            "id": "c6df3c77-f26a-4609-ab70-1cdc16423e64",
+            "name": "Münchener Verein",
+            "source": "central"
+        },
+        {
+            "id": "c91359c3-03da-4f5c-99c4-030048e0ed14",
+            "name": "Nürnberger",
+            "source": "central"
+        },
+        {
+            "id": "e205e00f-9fa4-4557-8877-bdf1ac150a4a",
+            "name": "Ottonova",
+            "source": "central"
+        },
+        {
+            "id": "976fa121-dda5-46e9-a419-c453132fd17c",
+            "name": "Praenatura",
+            "source": "central"
+        },
+        {
+            "id": "b23e5af2-834f-46b4-9de9-fa6f23178661",
+            "name": "Provinzial",
+            "source": "central"
+        },
+        {
+            "id": "cda4f7c3-e3ef-4216-8b82-1fe84bcfb5d4",
+            "name": "R+V",
+            "source": "central"
+        },
+        {
+            "id": "d2406a8a-3fc2-4e26-b636-9b909ff5d620",
+            "name": "Signal Iduna",
+            "source": "central"
+        },
+        {
+            "id": "eea0bde7-f0c1-4b72-a8e1-44ca57d8e3cd",
+            "name": "SONO",
+            "source": "central"
+        },
+        {
+            "id": "c213b180-9136-4be4-9644-e66ec42f053d",
+            "name": "St. Martinus Priesterverein der Diözese Rottenburg-Stuttgart",
+            "source": "central"
+        },
+        {
+            "id": "48ac1fcb-9274-41c7-95a6-526bea1086c3",
+            "name": "Süddeutsche",
+            "source": "central"
+        },
+        {
+            "id": "6bff85f1-aacc-4a4f-9351-19b1c4e2763b",
+            "name": "Union",
+            "source": "central"
+        },
+        {
+            "id": "d3522370-4f94-4d4d-9775-393a3f8b8517",
+            "name": "uniVersa",
+            "source": "central"
+        },
+        {
+            "id": "bb886311-093b-4b3d-832a-1155c39a9f4a",
+            "name": "Versicherer im Raum der Kirchen",
+            "source": "central"
+        },
+        {
+            "id": "2302c5a3-02f5-4387-9e52-3c3434bb108b",
+            "name": "Vigo",
+            "source": "central"
+        },
+        {
+            "id": "39700795-0455-4c16-8fde-e2a369f74ec9",
+            "name": "Württembergische",
+            "source": "central"
+        }
+    ]
+}
