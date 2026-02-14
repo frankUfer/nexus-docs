@@ -1,6 +1,6 @@
 # Nexus Development Workflow
 
-> Last updated: 2026-02-13
+> Last updated: 2026-02-14
 
 ## Development Environment
 
@@ -73,64 +73,64 @@ most important habit for Claude Code productivity.
 
 ## Development Phases
 
-### Phase 1 — Foundation
+### Phase 1 — Foundation ✅
 **Goal:** Infrastructure in place, basic connectivity proven
 
-| Task                          | Repo          | Priority |
-|-------------------------------|---------------|----------|
-| Architecture docs (this repo) | nexus-docs    | ✅ Done  |
-| WireGuard + UFW setup scripts | nexus-gate    | Next     |
-| PostgreSQL install + schemas  | nexus-core    | Next     |
-| FastAPI skeleton + health endpoint | nexus-core | Next    |
-| systemd unit files            | nexus-core    | Next     |
-| Deployment script (Mac → Server) | nexus-core | Next     |
+| Task                               | Repo       | Status  |
+|------------------------------------|------------|---------|
+| Architecture docs (this repo)      | nexus      | ✅ Done |
+| PostgreSQL install + schemas       | nexus-core | ✅ Done |
+| FastAPI skeleton + health endpoint | nexus-core | ✅ Done |
+| systemd unit files                 | nexus-core | ✅ Done |
+| WireGuard + UFW setup scripts      | nexus-gate | Pending |
+| Deployment script (Mac → Server)   | nexus-core | Pending |
 
-### Phase 2 — Core Data Flow
+### Phase 2 — Core Data Flow (server ✅, iPad pending)
 **Goal:** iPads can push/pull data through the sync API
 
-| Task                              | Repo          |
-|-----------------------------------|---------------|
-| Sync API: push endpoint           | nexus-core    |
-| Sync API: pull endpoint           | nexus-core    |
-| Sync API: attachment upload/download | nexus-core |
-| Sync API: auth (JWT)              | nexus-core    |
-| Sync API: three-tier conflict resolution | nexus-core |
-| iPad: file-based patient storage  | nexus-field   |
-| iPad: sync engine + outbound queue| nexus-field   |
-| iPad: minimal UI for testing      | nexus-field   |
-| End-to-end sync test              | Both          |
+| Task                                       | Repo       | Status  |
+|--------------------------------------------|------------|---------|
+| Sync API: push endpoint                   | nexus-core | ✅ Done |
+| Sync API: pull endpoint                   | nexus-core | ✅ Done |
+| Sync API: attachment upload/download       | nexus-core | ✅ Done |
+| Sync API: auth (JWT)                       | nexus-core | ✅ Done |
+| Sync API: three-tier conflict resolution   | nexus-core | ✅ Done |
+| iPad: file-based patient storage           | nexus-field | Pending |
+| iPad: sync engine + outbound queue         | nexus-field | Pending |
+| iPad: minimal UI for testing               | nexus-field | Pending |
+| End-to-end sync test                       | Both        | Pending |
 
-### Phase 3 — Warehouse & ETL
+### Phase 3 — Warehouse & ETL ✅
 **Goal:** Data flows from staging to warehouse to marts
 
-| Task                              | Repo          |
-|-----------------------------------|---------------|
-| Dimensional model (DDL)           | nexus-core    |
-| ETL: staging → warehouse          | nexus-core    |
-| ETL: warehouse → marts            | nexus-core    |
-| systemd timers for ETL            | nexus-core    |
-| Mart verification queries         | nexus-core    |
+| Task                              | Repo       | Status  |
+|-----------------------------------|------------|---------|
+| Dimensional model (DDL)           | nexus-core | ✅ Done |
+| ETL: staging → warehouse          | nexus-core | ✅ Done |
+| ETL: warehouse → marts            | nexus-core | ✅ Done |
+| systemd timers for ETL            | nexus-core | ✅ Done |
+| Mart verification queries         | nexus-core | Pending |
 
 ### Phase 4 — Reporting & BI
 **Goal:** Data accessible through Clarity and direct SQL
 
-| Task                              | Repo          |
-|-----------------------------------|---------------|
-| Clarity mart connector            | clarity       |
-| Clarity dashboard basics          | clarity       |
-| Clarity Swift port (macOS)        | clarity-swift |
-| Direct SQL access setup           | nexus-core    |
+| Task                              | Repo          | Status  |
+|-----------------------------------|---------------|---------|
+| Clarity mart connector            | clarity       | Pending |
+| Clarity dashboard basics          | clarity       | Pending |
+| Clarity Swift port (macOS)        | clarity-swift | Pending |
+| Direct SQL access setup           | nexus-core    | Pending |
 
 ### Phase 5 — Hardening
 **Goal:** Production-ready operations
 
-| Task                              | Repo          |
-|-----------------------------------|---------------|
-| Backup automation + verification  | nexus-core    |
-| Health monitoring                 | nexus-core    |
-| Crawler framework                 | nexus-core    |
-| Security hardening checklist      | All           |
-| Gateway failover                  | nexus-gate    |
+| Task                              | Repo          | Status  |
+|-----------------------------------|---------------|---------|
+| Backup automation + verification  | nexus-core    | Pending |
+| Health monitoring                 | nexus-core    | Pending |
+| Crawler framework                 | nexus-core    | Pending |
+| Security hardening checklist      | All           | Pending |
+| Gateway failover                  | nexus-gate    | Pending |
 
 ## Deployment Workflow
 
