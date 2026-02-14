@@ -1,6 +1,6 @@
 # Nexus Development Workflow
 
-> Last updated: 2026-02-14
+> Last updated: 2026-02-14 (post-integration fixes complete)
 
 ## Development Environment
 
@@ -12,7 +12,7 @@
 ## Repository Layout
 
 ```
-~/Projects/nexus/                ← git repo (docs + project root)
+~/Projects/nexus/                ← git repo (docs + iPad app + project root)
 ├── .claude/CLAUDE.md
 ├── ARCHITECTURE_OVERVIEW.md     ← architecture docs live at root
 ├── SYNC_PROTOCOL.md
@@ -21,14 +21,19 @@
 ├── BACKUP_STRATEGY.md
 ├── decisions/                   ← ADRs
 ├── diagrams/
+├── AthleticPerformance/         ← iPad app (Swift, part of this repo)
+│   ├── *.xcodeproj
+│   ├── Packages/
+│   ├── Sources/
+│   └── Views/Sync/             ← Nexus sync integration module
 ├── nexus-core/                  ← separate git repo (Python)
 ├── nexus-gate/                  ← separate git repo (Bash/Python)
-├── nexus-field/                 ← separate git repo (Swift)
 ├── clarity/                     ← separate git repo (Python/PySide6)
 └── clarity-swift/               ← separate git repo (Swift)
 ```
 
-The root `nexus/` repo tracks documentation only. Component repos are
+The root `nexus/` repo tracks documentation and the iPad app.
+Component repos (nexus-core, nexus-gate, clarity, clarity-swift) are
 git-ignored by the parent and managed independently.
 
 ## Working with Claude Code
@@ -39,8 +44,8 @@ Claude Code works best with focused context. Open Claude Code in the
 specific repo you're working on:
 
 ```bash
+cd ~/Projects/nexus && claude               # iPad app + docs work
 cd ~/Projects/nexus/nexus-core && claude    # Server work
-cd ~/Projects/nexus/nexus-field && claude   # iPad app work
 cd ~/Projects/nexus/nexus-gate && claude    # Gateway work
 ```
 
@@ -50,7 +55,7 @@ When a change spans repos (e.g., sync protocol update):
 
 1. Update the spec at the nexus root first (e.g., `SYNC_PROTOCOL.md`)
 2. Update `nexus-core/` (server side) in its own Claude Code session
-3. Update `nexus-field/` (client side) in its own Claude Code session
+3. Update `AthleticPerformance/` (iPad app) in the root nexus session
 4. Reference the root spec from each component's CLAUDE.md
 
 ### Task Sizing
@@ -85,20 +90,59 @@ most important habit for Claude Code productivity.
 | WireGuard + UFW setup scripts      | nexus-gate | Pending |
 | Deployment script (Mac → Server)   | nexus-core | Pending |
 
-### Phase 2 — Core Data Flow (server ✅, iPad pending)
+### Phase 2 — Core Data Flow ✅
 **Goal:** iPads can push/pull data through the sync API
 
-| Task                                       | Repo       | Status  |
-|--------------------------------------------|------------|---------|
-| Sync API: push endpoint                   | nexus-core | ✅ Done |
-| Sync API: pull endpoint                   | nexus-core | ✅ Done |
-| Sync API: attachment upload/download       | nexus-core | ✅ Done |
-| Sync API: auth (JWT)                       | nexus-core | ✅ Done |
-| Sync API: three-tier conflict resolution   | nexus-core | ✅ Done |
-| iPad: file-based patient storage           | nexus-field | Pending |
-| iPad: sync engine + outbound queue         | nexus-field | Pending |
-| iPad: minimal UI for testing               | nexus-field | Pending |
-| End-to-end sync test                       | Both        | Pending |
+| Task                                       | Repo                | Status  |
+|--------------------------------------------|---------------------|---------|
+| Sync API: push endpoint                   | nexus-core          | ✅ Done |
+| Sync API: pull endpoint                   | nexus-core          | ✅ Done |
+| Sync API: attachment upload/download       | nexus-core          | ✅ Done |
+| Sync API: auth (JWT)                       | nexus-core          | ✅ Done |
+| Sync API: three-tier conflict resolution   | nexus-core          | ✅ Done |
+| iPad: file-based patient storage           | AthleticPerformance | ✅ Done |
+| iPad: sync models + protocol types         | AthleticPerformance | ✅ Done |
+| iPad: outbound queue + version tracking    | AthleticPerformance | ✅ Done |
+| iPad: entity extractor (flatten patient)   | AthleticPerformance | ✅ Done |
+| iPad: entity merger (reassemble patient)   | AthleticPerformance | ✅ Done |
+| iPad: change detector (diff-based queue)   | AthleticPerformance | ✅ Done |
+| iPad: sync coordinator + auto-sync         | AthleticPerformance | ✅ Done |
+| iPad: parameter sync handler               | AthleticPerformance | ✅ Done |
+| iPad: patient sync handler                 | AthleticPerformance | ✅ Done |
+| iPad: attachment upload/download           | AthleticPerformance | ✅ Done |
+| iPad: connectivity monitor                 | AthleticPerformance | ✅ Done |
+| iPad: sync UI (status, sync now, settings) | AthleticPerformance | ✅ Done |
+| iPad: availability sync wiring             | AthleticPerformance | ✅ Done |
+| iPad: localization (en + de, 41 sync keys) | AthleticPerformance | ✅ Done |
+| iPad: TherapyPlan extraction + merge       | AthleticPerformance | ✅ Done |
+| iPad: DischargeReport/PreTreatment merge   | AthleticPerformance | ✅ Done |
+| End-to-end sync test                       | Both                | Pending |
+
+**iPad sync integration details (Phases 1–9 + post-integration fixes):**
+
+The AthleticPerformance iPad app now has a complete sync module under
+`Views/Sync/` with the following structure:
+
+```
+Views/Sync/
+├── Models/          SyncModels, AnyCodable, SyncDataCategory, SyncEntityType
+├── Queue/           OutboundQueue (persistent JSON queue)
+├── Serialization/   EntityExtractor, EntityMerger, ChangeDetector
+├── Engine/          SyncCoordinator, NexusSyncClient, ConnectivityMonitor,
+│                    PatientSyncHandler, ParameterSyncHandler,
+│                    AttachmentUploader, AttachmentDownloader
+├── State/           SyncStateStore, DeviceConfigStore, EntityVersionTracker
+└── Views/           SyncStatusView, SyncNowView, SyncSettingsView, SyncOptionView
+```
+
+Key design decisions:
+- **Flatten at sync time:** App keeps nested patient.json internally,
+  EntityExtractor decomposes into flat entity records for the sync protocol
+- **Diff-based queuing:** ChangeDetector compares old/new Patient snapshots,
+  only queues entities that actually changed
+- **Availability sync:** Wired separately (not patient-scoped), with
+  feedback-loop prevention on pull application
+- **Auto-sync:** Pushes when server reachable + queue non-empty, pulls every 5 min
 
 ### Phase 3 — Warehouse & ETL ✅
 **Goal:** Data flows from staging to warehouse to marts
@@ -142,8 +186,8 @@ cd ~/Projects/nexus/nexus-core
 uv sync
 uv run pytest
 
-# Swift repos: use Xcode
-open ~/Projects/nexus/nexus-field/SyncClient.xcodeproj
+# iPad app: use Xcode
+open ~/Projects/nexus/AthleticPerformance/AthleticPerformance.xcodeproj
 ```
 
 ### Deploy to Server
