@@ -174,7 +174,7 @@ Key design decisions:
 
 | Task                              | Repo          | Status  |
 |-----------------------------------|---------------|---------|
-| Backup automation + verification  | nexus-core    | Pending |
+| Backup automation + verification  | nexus-core    | ✅ Done |
 | Health monitoring                 | nexus-core    | Pending |
 | Crawler framework                 | nexus-core    | Pending |
 | Security hardening checklist      | All           | Pending |
