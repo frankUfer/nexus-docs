@@ -157,7 +157,7 @@ Key design decisions:
 | ETL: staging → warehouse          | nexus-core | ✅ Done |
 | ETL: warehouse → marts            | nexus-core | ✅ Done |
 | systemd timers for ETL            | nexus-core | ✅ Done |
-| Mart verification queries         | nexus-core | Pending |
+| Mart verification queries         | nexus-core | ✅ Done |
 
 ### Phase 4 — Reporting & BI
 **Goal:** Data accessible through Clarity and direct SQL
