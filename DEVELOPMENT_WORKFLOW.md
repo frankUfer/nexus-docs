@@ -178,7 +178,7 @@ Key design decisions:
 | Health monitoring                 | nexus-core    | ✅ Done |
 | Crawler framework                 | nexus-core    | ✅ Done |
 | Security hardening checklist      | All           | ✅ Done |
-| Gateway failover                  | nexus-gate    | Pending |
+| Gateway failover                  | nexus-gate    | ✅ Done |
 
 ## Deployment Workflow
 

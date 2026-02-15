@@ -118,7 +118,8 @@ Allow: TCP 8080  from 10.10.0.0/24   (Clarity, if served from here)
 
 1. **Device compromised:** Remove WireGuard peer, revoke API token, investigate staging data
 2. **Server compromised:** Isolate from network, restore from backup, rotate all secrets
-3. **Gateway compromised:** Switch to backup RPi, rotate all WireGuard keys
+3. **Gateway compromised:** If failover is configured, the standby RPi takes
+   over automatically. Rotate all WireGuard keys and VRRP password on both nodes.
 
 ## Hardening Checklist
 
@@ -129,6 +130,9 @@ Allow: TCP 8080  from 10.10.0.0/24   (Clarity, if served from here)
 - [ ] UFW enabled with allowlist rules
 - [ ] No unnecessary services running
 - [ ] Read-only filesystem where possible
+- [ ] VRRP authentication password (shared between failover pair)
+- [ ] Failover peer SSH restricted to root key-based auth only
+- [ ] Config sync limited to runtime data (no secrets in transit)
 
 ### nexus-server (Ubuntu Server)
 - [x] Minimal server install, no desktop packages

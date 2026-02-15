@@ -73,15 +73,25 @@ sources, and manual imports — all without cloud dependencies.
 ### nexus-gate (Raspberry Pi)
 
 Network edge device. Runs WireGuard server, UFW firewall, dnsmasq for
-internal DNS resolution (`*.local`). Headless Raspberry Pi OS Lite.
-Optional second RPi as warm standby.
+internal DNS resolution (`*.local`), and Guardian authentication service.
+Headless Raspberry Pi OS Lite.
+
+**High availability:** Optional second RPi as warm standby using keepalived
+(VRRP). Both nodes share a virtual IP (VIP) on the LAN. The FritzBox
+port-forwards UDP 51820 to the VIP. Only the MASTER node runs
+WireGuard/Guardian/dnsmasq — on failure, the VIP floats to the standby
+which starts all services automatically. Config sync (rsync over SSH,
+5-min timer) keeps the standby current with peer registrations. Both
+nodes share the same WireGuard private key and JWT secret, so iPads
+reconnect transparently after failover (~25-50s via WireGuard keepalive).
 
 **Responsibilities:**
 - Terminate VPN tunnels from all peers
+- Authenticate devices and issue JWT tokens (Guardian)
 - Firewall: only allow expected traffic patterns
 - Internal DNS: resolve `nexus-server.local`, `nexus-gate.local`
 - Health check: verify connectivity to nexus-server
-- No application logic — pure network infrastructure
+- Automated failover via VRRP (keepalived)
 
 ### nexus-core (Ubuntu Server)
 
