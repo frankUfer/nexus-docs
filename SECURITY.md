@@ -1,6 +1,6 @@
 # Nexus Security Architecture
 
-> Last updated: 2026-02-13
+> Last updated: 2026-02-15
 
 ## Security Layers
 
@@ -131,11 +131,11 @@ Allow: TCP 8080  from 10.10.0.0/24   (Clarity, if served from here)
 - [ ] Read-only filesystem where possible
 
 ### nexus-server (Ubuntu Server)
-- [ ] Minimal server install, no desktop packages
-- [ ] Automatic security updates
-- [ ] SSH key-only, fail2ban
-- [ ] UFW enabled
-- [ ] PostgreSQL listens only on localhost + VPN interface
+- [x] Minimal server install, no desktop packages
+- [x] Automatic security updates (unattended-upgrades)
+- [x] SSH key-only, fail2ban
+- [x] UFW enabled (allowlist: sync API, PostgreSQL, SSH)
+- [x] PostgreSQL listens only on localhost + VPN interface
 - [ ] Separate OS user per service (nexus-sync, nexus-etl, etc.)
 - [ ] Encrypted backup volume
 
@@ -144,3 +144,56 @@ Allow: TCP 8080  from 10.10.0.0/24   (Clarity, if served from here)
 - [ ] SSH key with passphrase
 - [ ] WireGuard config protected
 - [ ] No production secrets in development environment
+
+## Systemd Service Sandboxing
+
+All nexus services run with a shared security baseline:
+
+| Directive                | Value    | Purpose                                    |
+|--------------------------|----------|--------------------------------------------|
+| NoNewPrivileges          | yes      | Prevent privilege escalation               |
+| ProtectSystem            | strict   | Read-only filesystem (except explicit RW)  |
+| ProtectHome              | yes      | Hide /home, /root, /run/user               |
+| PrivateTmp               | yes      | Isolated /tmp per service                  |
+| PrivateDevices           | yes      | No access to physical devices              |
+| RestrictNamespaces       | yes      | No namespace creation                      |
+| RestrictRealtime         | yes      | No realtime scheduling                     |
+| RestrictSUIDSGID         | yes      | Block SUID/SGID bits                       |
+| LockPersonality          | yes      | Lock execution domain                      |
+| MemoryDenyWriteExecute   | yes      | Block W+X memory mappings                  |
+
+Per-service additions:
+
+| Service              | AddressFamilies          | ReadWritePaths           | ReadOnlyPaths            | IPAddressDeny |
+|----------------------|--------------------------|--------------------------|--------------------------|---------------|
+| nexus-sync           | AF_INET AF_INET6 AF_UNIX | /var/nexus/attachments   | —                        | —             |
+| nexus-etl-staging    | AF_UNIX                  | —                        | —                        | any           |
+| nexus-etl-marts      | AF_UNIX                  | —                        | —                        | any           |
+| nexus-health         | AF_UNIX                  | —                        | —                        | any           |
+| nexus-backup         | AF_UNIX AF_INET AF_INET6 | /mnt/nas/nexus-backup    | /var/nexus/attachments   | —             |
+| nexus-backup-verify  | AF_UNIX AF_INET AF_INET6 | —                        | /mnt/nas/nexus-backup    | —             |
+| nexus-crawl          | AF_INET AF_INET6 AF_UNIX | —                        | —                        | —             |
+
+## API Hardening
+
+### Security Headers
+
+All responses from nexus-sync include:
+
+| Header                   | Value              | Purpose                           |
+|--------------------------|--------------------|-----------------------------------|
+| X-Content-Type-Options   | nosniff            | Prevent MIME-type sniffing        |
+| X-Frame-Options          | DENY               | Block iframe embedding            |
+| Cache-Control            | no-store           | Prevent caching of API responses  |
+| Content-Security-Policy  | default-src 'none' | Restrictive CSP for API-only app  |
+
+### Trusted Host Validation
+
+When `NEXUS_TRUSTED_HOSTS` is set (not `*`), Starlette's TrustedHostMiddleware
+validates the `Host` header against the allowlist. Default production value:
+`10.10.0.10,localhost`.
+
+### Upload Size Limit
+
+File uploads are bounded by `NEXUS_MAX_UPLOAD_SIZE_BYTES` (default: 50 MB).
+Oversized requests receive HTTP 413 before the file is written to disk.
