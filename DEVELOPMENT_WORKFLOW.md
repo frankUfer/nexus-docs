@@ -117,7 +117,7 @@ most important habit for Claude Code productivity.
 | iPad: TherapyPlan extraction + merge       | AthleticPerformance | ✅ Done |
 | iPad: DischargeReport/PreTreatment merge   | AthleticPerformance | ✅ Done |
 | Manifest-based flattening validation       | Both                | ✅ Done |
-| End-to-end sync test                       | Both                | Pending |
+| End-to-end sync test                       | Both                | ✅ Done |
 
 **iPad sync integration details (Phases 1–9 + post-integration fixes):**
 
