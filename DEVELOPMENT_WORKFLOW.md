@@ -176,7 +176,7 @@ Key design decisions:
 |-----------------------------------|---------------|---------|
 | Backup automation + verification  | nexus-core    | ✅ Done |
 | Health monitoring                 | nexus-core    | ✅ Done |
-| Crawler framework                 | nexus-core    | Pending |
+| Crawler framework                 | nexus-core    | ✅ Done |
 | Security hardening checklist      | All           | Pending |
 | Gateway failover                  | nexus-gate    | Pending |
 
