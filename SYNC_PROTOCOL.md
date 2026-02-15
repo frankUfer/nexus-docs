@@ -69,12 +69,14 @@ Each iPad is registered as a device with:
 ```
 device_id:    UUID (generated on first registration)
 device_name:  Human-readable label ("nexus-field-01")
-api_token:    Signed JWT, rotated periodically
+password:     Random credential (shown once, stored as bcrypt hash)
 wireguard_ip: 10.10.0.1XX
 ```
 
 Registration is a one-time process performed by an administrator.
-The device receives its API token and WireGuard configuration.
+The device receives its device_id, password, and WireGuard configuration.
+It authenticates via `POST /auth/token` to obtain a JWT bearer token.
+See [AUTH_PROTOCOL.md](AUTH_PROTOCOL.md) for the full authentication contract.
 
 ## Endpoints
 
@@ -419,11 +421,12 @@ Attachments follow the same conflict rules as their parent entity.
 ## Security
 
 - All sync traffic flows through WireGuard tunnel
-- API token (JWT) in Authorization header
+- JWT bearer token in Authorization header (issued by Guardian)
 - TLS on the API endpoint (defense in depth)
 - Device registration is admin-only
-- Token rotation: every 30 days (configurable)
-- Rate limiting: per-device, configurable
+- Token expiry: 60 minutes, re-authenticate with stored credentials
+- Rate limiting: 3 failed attempts in 10 min → 30 min block
+- See [AUTH_PROTOCOL.md](AUTH_PROTOCOL.md) for full authentication details
 
 ## Open Questions
 

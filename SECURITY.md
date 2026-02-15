@@ -73,9 +73,9 @@ Allow: TCP 8080  from 10.10.0.0/24   (Clarity, if served from here)
 ### iPad Devices (nexus-field)
 1. WireGuard tunnel must be active (network-level identity)
 2. JWT bearer token in API requests (application-level identity)
-3. Token contains: device_id, issued_at, expires_at
-4. Token signed with server secret (HS256 initially, RS256 later)
-5. Token rotation: 30-day expiry, refresh endpoint available
+3. Token contains: device_id, iat, exp (see [AUTH_PROTOCOL.md](AUTH_PROTOCOL.md))
+4. Token signed with shared secret (HS256)
+5. Token expiry: 60 minutes (configurable). No refresh — re-authenticate with credentials
 
 ### SSH Access (admin)
 - Key-based authentication only (PasswordAuthentication no)
