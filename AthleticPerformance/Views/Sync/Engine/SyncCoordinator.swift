@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import CryptoKit
 
 /// Orchestrates the full sync flow: push local changes, pull remote changes.
 /// Wires PatientStore's onPatientChanged callback to the outbound queue via ChangeDetector.
@@ -177,13 +178,16 @@ final class SyncCoordinator: ObservableObject {
             )
         }
 
+        let manifests = computeManifests(for: pushChanges)
+
         let request = SyncPushRequest(
             deviceId: deviceConfigStore.config.deviceId,
             syncId: UUID(),
             clientTimestamp: Date(),
             lastPullVersion: syncStateStore.state.lastPullVersion,
             changes: pushChanges,
-            attachments: [] // Attachments handled separately in Phase 6
+            attachments: [], // Attachments handled separately in Phase 6
+            manifests: manifests.isEmpty ? nil : manifests
         )
 
         do {
@@ -343,5 +347,60 @@ final class SyncCoordinator: ObservableObject {
 
         // Remove the entity from the outbound queue since the server rejected it.
         outboundQueue.markSynced(entityIds: [conflict.entityId])
+    }
+
+    // MARK: - Manifest Computation
+
+    private func computeManifests(for changes: [SyncPushChange]) -> [SyncManifest] {
+        // Group changes by patientId (skip nil — e.g. availability slots)
+        var grouped: [UUID: [SyncPushChange]] = [:]
+        for change in changes {
+            guard let patientId = change.patientId else { continue }
+            grouped[patientId, default: []].append(change)
+        }
+
+        return grouped.map { (patientId, patientChanges) in
+            // Per entity-type counts
+            var typeCounts: [String: Int] = [:]
+            for change in patientChanges {
+                typeCounts[change.entityType.rawValue, default: 0] += 1
+            }
+
+            let entityIds = patientChanges.map(\.entityId)
+            let checksum = computeContentChecksum(for: patientChanges)
+
+            return SyncManifest(
+                patientId: patientId,
+                entityCount: patientChanges.count,
+                entityTypeCounts: typeCounts,
+                entityIds: entityIds,
+                contentChecksum: checksum
+            )
+        }
+    }
+
+    private func computeContentChecksum(for changes: [SyncPushChange]) -> String {
+        // Algorithm (must match server side):
+        // 1. For each change, serialize its data dict with sorted keys, compact
+        // 2. Sort the JSON strings lexicographically
+        // 3. Join with "\n"
+        // 4. SHA-256 hash → lowercase hex
+
+        var jsonStrings: [String] = []
+        for change in changes {
+            let rawDict = change.data.mapValues(\.value)
+            if let jsonData = try? JSONSerialization.data(
+                withJSONObject: rawDict,
+                options: [.sortedKeys, .withoutEscapingSlashes]
+            ),
+               let jsonStr = String(data: jsonData, encoding: .utf8) {
+                jsonStrings.append(jsonStr)
+            }
+        }
+        jsonStrings.sort()
+        let concatenated = jsonStrings.joined(separator: "\n")
+        let data = Data(concatenated.utf8)
+        let hash = SHA256.hash(data: data)
+        return hash.compactMap { String(format: "%02x", $0) }.joined()
     }
 }

@@ -30,13 +30,14 @@ struct SyncPushRequest: Codable {
     let lastPullVersion: Int
     let changes: [SyncPushChange]
     let attachments: [SyncAttachmentRef]
+    let manifests: [SyncManifest]?
 
     enum CodingKeys: String, CodingKey {
         case deviceId = "device_id"
         case syncId = "sync_id"
         case clientTimestamp = "client_timestamp"
         case lastPullVersion = "last_pull_version"
-        case changes, attachments
+        case changes, attachments, manifests
     }
 }
 
@@ -73,6 +74,24 @@ struct SyncAttachmentRef: Codable {
         case contentType = "content_type"
         case sizeBytes = "size_bytes"
         case checksum
+    }
+}
+
+// MARK: - Push Manifest
+
+struct SyncManifest: Codable {
+    let patientId: UUID
+    let entityCount: Int
+    let entityTypeCounts: [String: Int]
+    let entityIds: [UUID]
+    let contentChecksum: String
+
+    enum CodingKeys: String, CodingKey {
+        case patientId = "patient_id"
+        case entityCount = "entity_count"
+        case entityTypeCounts = "entity_type_counts"
+        case entityIds = "entity_ids"
+        case contentChecksum = "content_checksum"
     }
 }
 
