@@ -32,6 +32,7 @@ struct AthleticsPerformanceApp: App {
     @State private var showProductiveImportAlert = false
     @State private var productiveDataExists = false
 
+    @State private var authManager: AuthManager?
     @State private var syncCoordinator: SyncCoordinator?
 
     @Environment(\.scenePhase) private var scenePhase
@@ -43,6 +44,7 @@ struct AthleticsPerformanceApp: App {
                 .environmentObject(navigationStore)
                 .environmentObject(deviceConfigStore)
                 .environmentObject(syncStateStore)
+                .modifier(AuthEnvironmentModifier(authManager: authManager))
                 .modifier(SyncEnvironmentModifier(syncCoordinator: syncCoordinator))
                 .task {
                     await performInitialSetup()
@@ -67,6 +69,19 @@ struct AthleticsPerformanceApp: App {
                         secondaryButton: .cancel()
                     )
                 }
+        }
+    }
+
+    /// Helper to inject optional AuthManager into the environment.
+    private struct AuthEnvironmentModifier: ViewModifier {
+        let authManager: AuthManager?
+
+        func body(content: Content) -> some View {
+            if let manager = authManager {
+                content.environmentObject(manager)
+            } else {
+                content
+            }
         }
     }
 
@@ -200,7 +215,10 @@ struct AthleticsPerformanceApp: App {
     /// Creates and starts the sync coordinator if the device is configured.
     @MainActor
     private func initializeSyncCoordinator() {
-        let client = NexusSyncClient(deviceConfigStore: deviceConfigStore)
+        let auth = AuthManager(deviceConfigStore: deviceConfigStore)
+        authManager = auth
+
+        let client = NexusSyncClient(deviceConfigStore: deviceConfigStore, authManager: auth)
         let monitor = ConnectivityMonitor(client: client)
 
         let coordinator = SyncCoordinator(

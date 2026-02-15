@@ -4,6 +4,7 @@ struct DeviceConfig: Codable {
     var deviceId: UUID
     var deviceName: String
     var serverURL: String
+    var guardianURL: String
     var isRegistered: Bool
 
     static func `default`() -> DeviceConfig {
@@ -11,8 +12,27 @@ struct DeviceConfig: Codable {
             deviceId: UUID(),
             deviceName: "",
             serverURL: "",
+            guardianURL: "",
             isRegistered: false
         )
+    }
+
+    // Backward-compatible decoding: existing files without guardianURL still load.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        deviceId = try container.decode(UUID.self, forKey: .deviceId)
+        deviceName = try container.decode(String.self, forKey: .deviceName)
+        serverURL = try container.decode(String.self, forKey: .serverURL)
+        guardianURL = try container.decodeIfPresent(String.self, forKey: .guardianURL) ?? ""
+        isRegistered = try container.decode(Bool.self, forKey: .isRegistered)
+    }
+
+    init(deviceId: UUID, deviceName: String, serverURL: String, guardianURL: String, isRegistered: Bool) {
+        self.deviceId = deviceId
+        self.deviceName = deviceName
+        self.serverURL = serverURL
+        self.guardianURL = guardianURL
+        self.isRegistered = isRegistered
     }
 }
 

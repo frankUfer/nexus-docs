@@ -2,7 +2,6 @@ import Foundation
 
 enum SyncClientError: Error {
     case noServerURL
-    case noToken
     case unauthorized
     case rateLimited(retryAfter: TimeInterval?)
     case serverError(statusCode: Int, body: String?)
@@ -13,12 +12,14 @@ enum SyncClientError: Error {
 actor NexusSyncClient {
     private let session: URLSession
     private let deviceConfigStore: DeviceConfigStore
+    private let authManager: AuthManager
 
     private let decoder = JSONDecoder.syncDecoder
     private let encoder = JSONEncoder.syncEncoder
 
-    init(deviceConfigStore: DeviceConfigStore, session: URLSession = .shared) {
+    init(deviceConfigStore: DeviceConfigStore, authManager: AuthManager, session: URLSession = .shared) {
         self.deviceConfigStore = deviceConfigStore
+        self.authManager = authManager
         self.session = session
     }
 
@@ -29,9 +30,8 @@ actor NexusSyncClient {
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        try applyAuth(&urlRequest)
         urlRequest.httpBody = try encoder.encode(request)
-        return try await perform(urlRequest)
+        return try await performWithAuth(urlRequest)
     }
 
     // MARK: - Pull
@@ -46,8 +46,7 @@ actor NexusSyncClient {
         ]
         var urlRequest = URLRequest(url: components.url!)
         urlRequest.httpMethod = "GET"
-        try applyAuth(&urlRequest)
-        return try await perform(urlRequest)
+        return try await performWithAuth(urlRequest)
     }
 
     // MARK: - Upload
@@ -56,7 +55,6 @@ actor NexusSyncClient {
         let url = try await baseURL().appendingPathComponent("sync/upload/\(token)")
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
-        try applyAuth(&urlRequest)
 
         let boundary = UUID().uuidString
         urlRequest.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
@@ -69,7 +67,7 @@ actor NexusSyncClient {
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
         urlRequest.httpBody = body
 
-        return try await perform(urlRequest)
+        return try await performWithAuth(urlRequest)
     }
 
     // MARK: - Download
@@ -78,14 +76,7 @@ actor NexusSyncClient {
         let url = try await baseURL().appendingPathComponent("sync/download/\(token)")
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "GET"
-        try applyAuth(&urlRequest)
-
-        let (data, response) = try await session.data(for: urlRequest)
-        guard let http = response as? HTTPURLResponse else {
-            throw SyncClientError.serverError(statusCode: 0, body: nil)
-        }
-        try handleStatusCode(http, data: data)
-        return data
+        return try await downloadWithAuth(urlRequest)
     }
 
     // MARK: - Status
@@ -94,11 +85,10 @@ actor NexusSyncClient {
         let url = try await baseURL().appendingPathComponent("sync/status")
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "GET"
-        try applyAuth(&urlRequest)
-        return try await perform(urlRequest)
+        return try await performWithAuth(urlRequest)
     }
 
-    // MARK: - Helpers
+    // MARK: - Base URL
 
     private func baseURL() async throws -> URL {
         let serverURL = await deviceConfigStore.config.serverURL
@@ -108,31 +98,70 @@ actor NexusSyncClient {
         return url
     }
 
-    private func applyAuth(_ request: inout URLRequest) throws {
-        guard let token = KeychainHelper.loadToken() else {
-            throw SyncClientError.noToken
+    // MARK: - Auth + Retry
+
+    /// Execute a request with Bearer token. On 401, re-authenticates and retries once.
+    private func performWithAuth<T: Decodable>(_ request: URLRequest) async throws -> T {
+        var req = request
+        let token = try await authManager.ensureValidToken()
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        do {
+            return try await execute(req)
+        } catch SyncClientError.unauthorized {
+            // Token rejected — re-authenticate with Guardian and retry once
+            let newToken = try await authManager.reauthenticate()
+            var retryReq = request
+            retryReq.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
+            return try await execute(retryReq)
         }
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
     }
 
-    private func perform<T: Decodable>(_ request: URLRequest) async throws -> T {
-        let (data, response): (Data, URLResponse)
-        do {
-            (data, response) = try await session.data(for: request)
-        } catch {
-            throw SyncClientError.networkError(error)
-        }
+    /// Execute a raw data download with Bearer token. On 401, retries once.
+    private func downloadWithAuth(_ request: URLRequest) async throws -> Data {
+        var req = request
+        let token = try await authManager.ensureValidToken()
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
+        do {
+            return try await executeRaw(req)
+        } catch SyncClientError.unauthorized {
+            let newToken = try await authManager.reauthenticate()
+            var retryReq = request
+            retryReq.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
+            return try await executeRaw(retryReq)
+        }
+    }
+
+    // MARK: - HTTP Execution
+
+    private func execute<T: Decodable>(_ request: URLRequest) async throws -> T {
+        let (data, response) = try await sendRequest(request)
         guard let http = response as? HTTPURLResponse else {
             throw SyncClientError.serverError(statusCode: 0, body: nil)
         }
-
         try handleStatusCode(http, data: data)
-
         do {
             return try decoder.decode(T.self, from: data)
         } catch {
             throw SyncClientError.decodingError(error)
+        }
+    }
+
+    private func executeRaw(_ request: URLRequest) async throws -> Data {
+        let (data, response) = try await sendRequest(request)
+        guard let http = response as? HTTPURLResponse else {
+            throw SyncClientError.serverError(statusCode: 0, body: nil)
+        }
+        try handleStatusCode(http, data: data)
+        return data
+    }
+
+    private func sendRequest(_ request: URLRequest) async throws -> (Data, URLResponse) {
+        do {
+            return try await session.data(for: request)
+        } catch {
+            throw SyncClientError.networkError(error)
         }
     }
 
@@ -141,10 +170,10 @@ actor NexusSyncClient {
         case 200..<300:
             return
         case 401:
-            KeychainHelper.deleteToken()
             throw SyncClientError.unauthorized
         case 429:
-            let retryAfter = response.value(forHTTPHeaderField: "Retry-After").flatMap(TimeInterval.init)
+            let retryAfter = response.value(forHTTPHeaderField: "Retry-After")
+                .flatMap(TimeInterval.init)
             throw SyncClientError.rateLimited(retryAfter: retryAfter)
         default:
             let body = String(data: data, encoding: .utf8)
