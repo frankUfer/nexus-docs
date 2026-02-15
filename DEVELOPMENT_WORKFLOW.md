@@ -167,7 +167,7 @@ Key design decisions:
 | Clarity mart connector            | clarity       | Pending |
 | Clarity dashboard basics          | clarity       | Pending |
 | Clarity Swift port (macOS)        | clarity-swift | Pending |
-| Direct SQL access setup           | nexus-core    | Pending |
+| Direct SQL access setup           | nexus-core    | ✅ Done |
 
 ### Phase 5 — Hardening
 **Goal:** Production-ready operations
