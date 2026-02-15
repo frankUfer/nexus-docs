@@ -1,6 +1,6 @@
 # Nexus Development Workflow
 
-> Last updated: 2026-02-14 (post-integration fixes complete)
+> Last updated: 2026-02-15 (manifest-based flattening validation added)
 
 ## Development Environment
 
@@ -116,6 +116,7 @@ most important habit for Claude Code productivity.
 | iPad: localization (en + de, 41 sync keys) | AthleticPerformance | ✅ Done |
 | iPad: TherapyPlan extraction + merge       | AthleticPerformance | ✅ Done |
 | iPad: DischargeReport/PreTreatment merge   | AthleticPerformance | ✅ Done |
+| Manifest-based flattening validation       | Both                | ✅ Done |
 | End-to-end sync test                       | Both                | Pending |
 
 **iPad sync integration details (Phases 1–9 + post-integration fixes):**
@@ -143,6 +144,9 @@ Key design decisions:
 - **Availability sync:** Wired separately (not patient-scoped), with
   feedback-loop prevention on pull application
 - **Auto-sync:** Pushes when server reachable + queue non-empty, pulls every 5 min
+- **Manifest validation:** Each push includes a per-patient manifest (entity counts,
+  type counts, IDs, SHA-256 checksum). Server validates against received entities
+  during staging and logs results to `staging.sync_validation`. Non-blocking (audit only).
 
 ### Phase 3 — Warehouse & ETL ✅
 **Goal:** Data flows from staging to warehouse to marts
