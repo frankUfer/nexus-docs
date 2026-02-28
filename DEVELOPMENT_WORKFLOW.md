@@ -159,15 +159,15 @@ Key design decisions:
 | systemd timers for ETL            | nexus-core | ✅ Done |
 | Mart verification queries         | nexus-core | ✅ Done |
 
-### Phase 4 — Reporting & BI
+### Phase 4 — Reporting & BI ✅
 **Goal:** Data accessible through Clarity and direct SQL
 
 | Task                              | Repo          | Status  |
 |-----------------------------------|---------------|---------|
-| Clarity mart connector            | clarity       | Pending |
-| Clarity dashboard basics          | clarity       | Pending |
-| Clarity Swift port (macOS)        | clarity-swift | Pending |
 | Direct SQL access setup           | nexus-core    | ✅ Done |
+
+Remaining Clarity work (mart connector, dashboards, Swift port) is tracked
+in the clarity and clarity-swift repos, which are separate projects.
 
 ### Phase 5 — Hardening
 **Goal:** Production-ready operations
