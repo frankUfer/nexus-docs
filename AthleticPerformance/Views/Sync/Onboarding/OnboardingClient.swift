@@ -60,7 +60,9 @@ actor OnboardingClient {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 10
+        // Server may call Guardian (10s timeout) during full-tier provisioning,
+        // so allow enough headroom for the full server-side chain to complete.
+        request.timeoutInterval = 30
 
         var body: [String: Any] = ["code": code]
         if let key = wgPublicKey {
