@@ -1,3 +1,4 @@
+import CryptoKit
 import SwiftUI
 
 /// Setup flow for new iPads: enter 6-digit code, connect via USB, get configured automatically.
@@ -12,6 +13,8 @@ struct OnboardingView: View {
     @State private var isClaimInProgress = false
     @State private var errorMessage: String?
     @State private var isComplete = false
+    @State private var showWireGuardExport = false
+    @State private var wireGuardConfigURL: URL?
 
     private let onboardingClient = OnboardingClient()
 
@@ -28,6 +31,21 @@ struct OnboardingView: View {
                 if let error = errorMessage {
                     errorSection(error)
                 }
+
+                // Debug info — remove after onboarding is verified
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Debug:").font(.caption.bold())
+                    Text("Transport: \(transportManager.currentTransport.rawValue)")
+                    Text("Reachable: \(transportManager.isServerReachable ? "yes" : "no")")
+                    Text("Server: \(transportManager.discoveredServer?.baseURL ?? "none")")
+                    Text("Bonjour: \(transportManager.bonjourDebugStatus)")
+                    Text("Health: \(transportManager.healthDebug)")
+                }
+                .font(.caption2.monospaced())
+                .foregroundStyle(.secondary)
+                .padding()
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+
                 Spacer()
             }
             .padding()
@@ -37,6 +55,17 @@ struct OnboardingView: View {
             }
             .onDisappear {
                 transportManager.stopMonitoring()
+            }
+            .sheet(isPresented: $showWireGuardExport, onDismiss: {
+                // Delete temp file — private key must not persist on disk
+                if let url = wireGuardConfigURL {
+                    try? FileManager.default.removeItem(at: url)
+                    wireGuardConfigURL = nil
+                }
+            }) {
+                if let url = wireGuardConfigURL {
+                    ShareSheet(items: [url])
+                }
             }
         }
     }
@@ -52,7 +81,7 @@ struct OnboardingView: View {
             Text("Connect to Nexus")
                 .font(.title2.bold())
 
-            Text("Connect this iPad to the server via USB cable, then enter the 6-digit setup code from your admin.")
+            Text("Connect this iPad to the server via network cable, then enter the 6-digit setup code from your admin.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -113,7 +142,7 @@ struct OnboardingView: View {
         if let server = transportManager.discoveredServer {
             return "\(server.host):\(server.port) (\(server.tier))"
         }
-        return "Connect via USB cable to continue"
+        return "Connect via network cable to continue"
     }
 
     // MARK: - Code Entry
@@ -174,8 +203,16 @@ struct OnboardingView: View {
         errorMessage = nil
 
         do {
-            // For full tier, we'd generate WireGuard keys here
-            let wgPublicKey = KeychainHelper.loadWireGuardPublicKey()
+            // Generate WireGuard Curve25519 keypair for full-tier deployments
+            var wgPublicKey: String? = KeychainHelper.loadWireGuardPublicKey()
+            if wgPublicKey == nil, transportManager.discoveredServer?.tier == "full" {
+                let privateKey = Curve25519.KeyAgreement.PrivateKey()
+                let privBase64 = privateKey.rawRepresentation.base64EncodedString()
+                let pubBase64 = privateKey.publicKey.rawRepresentation.base64EncodedString()
+                _ = KeychainHelper.saveWireGuardPrivateKey(privBase64)
+                _ = KeychainHelper.saveWireGuardPublicKey(pubBase64)
+                wgPublicKey = pubBase64
+            }
 
             let response = try await onboardingClient.claim(
                 code: code,
@@ -213,9 +250,34 @@ struct OnboardingView: View {
             _ = KeychainHelper.saveDevicePassword(password)
         }
 
-        // Store WireGuard config if provided
+        // Store WireGuard config and export for WireGuard app
         if let wgConfig = response.wireguardConfig {
             _ = KeychainHelper.save(wgConfig, account: "wg_config")
+
+            // Inject PrivateKey and present share sheet for WireGuard app import
+            if let privKey = KeychainHelper.loadWireGuardPrivateKey() {
+                let fullConfig = wgConfig.replacingOccurrences(
+                    of: "[Interface]",
+                    with: "[Interface]\nPrivateKey = \(privKey)"
+                )
+                let tempURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("nexus-vpn.conf")
+                try? fullConfig.write(to: tempURL, atomically: true, encoding: .utf8)
+                wireGuardConfigURL = tempURL
+                showWireGuardExport = true
+            }
         }
     }
+}
+
+// MARK: - Share Sheet
+
+private struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
