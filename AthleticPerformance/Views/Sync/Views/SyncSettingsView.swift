@@ -15,11 +15,17 @@ struct SyncSettingsView: View {
     @State private var testResult: String?
     @State private var isTesting = false
     @State private var showManualConfig = false
+    @State private var showWireGuardExport = false
+    @State private var wireGuardConfigURL: URL?
+    @State private var showResetConfirmation = false
 
     var body: some View {
         Form {
             if deviceConfigStore.config.isProvisioned {
                 provisionedSection
+            }
+            if deviceConfigStore.config.isFullTier {
+                vpnSection
             }
             if showManualConfig || !deviceConfigStore.config.isProvisioned {
                 serverSection
@@ -37,20 +43,50 @@ struct SyncSettingsView: View {
                     .foregroundStyle(.secondary)
                 }
             }
+            if deviceConfigStore.config.isProvisioned {
+                Section {
+                    Button("Reset Provisioning", role: .destructive) {
+                        showResetConfirmation = true
+                    }
+                    .font(.caption)
+                } footer: {
+                    Text("Clears device config so you can re-run onboarding via cable.")
+                }
+            }
         }
         .navigationTitle(NSLocalizedString("syncSettingsTitle", comment: "Sync Settings"))
         .onAppear { loadFields() }
+        .sheet(isPresented: $showWireGuardExport, onDismiss: {
+            if let url = wireGuardConfigURL {
+                try? FileManager.default.removeItem(at: url)
+                wireGuardConfigURL = nil
+            }
+        }) {
+            if let url = wireGuardConfigURL {
+                WireGuardShareSheet(items: [url])
+            }
+        }
+        .alert("Reset Provisioning?", isPresented: $showResetConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Reset", role: .destructive) {
+                deviceConfigStore.config = DeviceConfig.default()
+                deviceConfigStore.save()
+                authManager.clearAll()
+            }
+        } message: {
+            Text("This will clear all device configuration. You will need to re-onboard via cable.")
+        }
     }
 
     // MARK: - Provisioned Status
 
     private var provisionedSection: some View {
         Section("Device Status") {
-            LabeledContent("Device", deviceConfigStore.config.deviceName)
-            LabeledContent("Server", deviceConfigStore.config.serverURL)
-            LabeledContent("Tier", deviceConfigStore.config.deploymentTier.capitalized)
+            LabeledContent("Device", value: deviceConfigStore.config.deviceName)
+            LabeledContent("Server", value: deviceConfigStore.config.serverURL)
+            LabeledContent("Tier", value: deviceConfigStore.config.deploymentTier.capitalized)
             if deviceConfigStore.config.isFullTier {
-                LabeledContent("Guardian", deviceConfigStore.config.guardianURL)
+                LabeledContent("Guardian", value: deviceConfigStore.config.guardianURL)
             }
             HStack {
                 Text("Provisioned")
@@ -282,6 +318,62 @@ struct SyncSettingsView: View {
         saveDeviceId()
     }
 
+    // MARK: - VPN Config Export
+
+    private var vpnSection: some View {
+        Section("VPN (WireGuard)") {
+            if deviceConfigStore.config.wireguardConfig != nil {
+                Button {
+                    exportWireGuardConfig()
+                } label: {
+                    Label("Export VPN Config", systemImage: "square.and.arrow.up")
+                }
+
+                Text("Opens share sheet — tap \"WireGuard\" to import the tunnel.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("No VPN config available. Re-run onboarding via cable to generate.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func exportWireGuardConfig() {
+        guard let wgConfig = deviceConfigStore.config.wireguardConfig else {
+            testResult = "No WireGuard config stored. Re-run onboarding via cable."
+            return
+        }
+        guard let privKey = KeychainHelper.loadWireGuardPrivateKey() else {
+            testResult = "No WireGuard private key in Keychain. Re-run onboarding via cable."
+            return
+        }
+
+        // Validate required fields before creating config file
+        if !wgConfig.contains("PublicKey") {
+            testResult = "Stored config is missing server PublicKey. Re-run onboarding via cable to get a valid config."
+            return
+        }
+        if wgConfig.contains("nexus-gate.local") {
+            testResult = "Stored config has local-only endpoint. Re-run onboarding via cable after setting NEXUS_WG_ENDPOINT on gateway."
+            return
+        }
+
+        let fullConfig = wgConfig.replacingOccurrences(
+            of: "[Interface]",
+            with: "[Interface]\nPrivateKey = \(privKey)"
+        )
+
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("nexus-vpn.conf")
+        try? fullConfig.write(to: tempURL, atomically: true, encoding: .utf8)
+        wireGuardConfigURL = tempURL
+        showWireGuardExport = true
+    }
+
+    // MARK: - Connection Test
+
     private func testConnection() {
         isTesting = true
         testResult = nil
@@ -312,7 +404,8 @@ struct SyncSettingsView: View {
             }
 
             // 3. nexus-core server check
-            let client = NexusSyncClient(deviceConfigStore: deviceConfigStore, authManager: authManager)
+            let transport = TransportManager(deviceConfigStore: deviceConfigStore)
+            let client = NexusSyncClient(deviceConfigStore: deviceConfigStore, authManager: authManager, transportManager: transport)
             do {
                 let response = try await client.status()
                 results.append("Server OK — v\(response.currentVersion)")
@@ -324,4 +417,16 @@ struct SyncSettingsView: View {
             isTesting = false
         }
     }
+}
+
+// MARK: - Share Sheet
+
+private struct WireGuardShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

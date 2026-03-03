@@ -15,6 +15,9 @@ struct OnboardingView: View {
     @State private var isComplete = false
     @State private var showWireGuardExport = false
     @State private var wireGuardConfigURL: URL?
+    /// Deferred claim response — saved after WireGuard share sheet is dismissed
+    /// so the view isn't killed before the sheet can present.
+    @State private var pendingClaimResponse: ClaimResponse?
 
     private let onboardingClient = OnboardingClient()
 
@@ -61,6 +64,11 @@ struct OnboardingView: View {
                 if let url = wireGuardConfigURL {
                     try? FileManager.default.removeItem(at: url)
                     wireGuardConfigURL = nil
+                }
+                // NOW save config — triggers isProvisioned → navigation away
+                if let response = pendingClaimResponse {
+                    finalizeProvisioning(response)
+                    pendingClaimResponse = nil
                 }
             }) {
                 if let url = wireGuardConfigURL {
@@ -232,6 +240,37 @@ struct OnboardingView: View {
     }
 
     private func applyClaimResponse(_ response: ClaimResponse) {
+        // Store password in Keychain if provided (full tier)
+        if let password = response.password {
+            _ = KeychainHelper.saveDevicePassword(password)
+        }
+
+        // Store WireGuard config and present share sheet BEFORE saving device config.
+        // Saving config sets isProvisioned=true which navigates away from this view,
+        // so we must show the share sheet first and defer the save to onDismiss.
+        if let wgConfig = response.wireguardConfig {
+            _ = KeychainHelper.save(wgConfig, account: "wg_config")
+
+            if let privKey = KeychainHelper.loadWireGuardPrivateKey() {
+                let fullConfig = wgConfig.replacingOccurrences(
+                    of: "[Interface]",
+                    with: "[Interface]\nPrivateKey = \(privKey)"
+                )
+                let tempURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("nexus-vpn.conf")
+                try? fullConfig.write(to: tempURL, atomically: true, encoding: .utf8)
+                wireGuardConfigURL = tempURL
+                pendingClaimResponse = response
+                showWireGuardExport = true
+                return
+            }
+        }
+
+        // No WireGuard config (lite tier) — save immediately
+        finalizeProvisioning(response)
+    }
+
+    private func finalizeProvisioning(_ response: ClaimResponse) {
         guard let deviceId = UUID(uuidString: response.deviceId) else { return }
 
         deviceConfigStore.config = DeviceConfig(
@@ -244,29 +283,6 @@ struct OnboardingView: View {
             wireguardConfig: response.wireguardConfig
         )
         deviceConfigStore.save()
-
-        // Store password in Keychain if provided (full tier)
-        if let password = response.password {
-            _ = KeychainHelper.saveDevicePassword(password)
-        }
-
-        // Store WireGuard config and export for WireGuard app
-        if let wgConfig = response.wireguardConfig {
-            _ = KeychainHelper.save(wgConfig, account: "wg_config")
-
-            // Inject PrivateKey and present share sheet for WireGuard app import
-            if let privKey = KeychainHelper.loadWireGuardPrivateKey() {
-                let fullConfig = wgConfig.replacingOccurrences(
-                    of: "[Interface]",
-                    with: "[Interface]\nPrivateKey = \(privKey)"
-                )
-                let tempURL = FileManager.default.temporaryDirectory
-                    .appendingPathComponent("nexus-vpn.conf")
-                try? fullConfig.write(to: tempURL, atomically: true, encoding: .utf8)
-                wireGuardConfigURL = tempURL
-                showWireGuardExport = true
-            }
-        }
     }
 }
 

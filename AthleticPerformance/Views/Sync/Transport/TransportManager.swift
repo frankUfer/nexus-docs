@@ -17,7 +17,12 @@ struct DiscoveredServer: Equatable {
     let transport: TransportType
 
     var baseURL: String {
-        "https://\(host):\(port)"
+        let scheme = port == 443 || port == 8443 ? "https" : "http"
+        if host.contains(":") {
+            // IPv6 addresses need brackets in URLs
+            return "\(scheme)://[\(host)]:\(port)"
+        }
+        return "\(scheme)://\(host):\(port)"
     }
 }
 
@@ -31,6 +36,7 @@ final class TransportManager: ObservableObject {
     @Published private(set) var currentTransport: TransportType = .none
     @Published private(set) var discoveredServer: DiscoveredServer?
     @Published private(set) var isServerReachable = false
+    @Published private(set) var healthDebug: String = ""
 
     private let bonjourBrowser = BonjourBrowser()
     private let deviceConfigStore: DeviceConfigStore
@@ -127,23 +133,30 @@ final class TransportManager: ObservableObject {
     func checkReachability() async {
         guard let server = discoveredServer ?? manualServer() else {
             isServerReachable = false
+            healthDebug = "no server"
             return
         }
 
-        guard let url = URL(string: "\(server.baseURL)/health") else {
+        let healthURL = "\(server.baseURL)/health"
+        guard let url = URL(string: healthURL) else {
             isServerReachable = false
+            healthDebug = "bad URL: \(healthURL)"
             return
         }
 
+        healthDebug = "checking \(healthURL)..."
         var request = URLRequest(url: url)
         request.timeoutInterval = 5
 
         do {
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (_, response) = try await URLSession.nexus.data(for: request)
             let http = response as? HTTPURLResponse
-            isServerReachable = http?.statusCode == 200
+            let status = http?.statusCode ?? 0
+            isServerReachable = status == 200
+            healthDebug = isServerReachable ? "OK (\(status))" : "HTTP \(status)"
         } catch {
             isServerReachable = false
+            healthDebug = "error: \(error.localizedDescription)"
         }
     }
 
@@ -154,9 +167,20 @@ final class TransportManager: ObservableObject {
         discoveredServer?.baseURL ?? manualServerURL()
     }
 
-    /// Whether the current connection uses wired (X-Device-ID) auth.
+    /// Whether the current connection uses local (X-Device-ID) auth.
+    /// True for USB-wired connections AND Bonjour-discovered servers (same LAN segment).
     var isWired: Bool {
-        currentTransport == .wired
+        currentTransport == .wired || bonjourBrowser.discoveredEndpoint != nil
+    }
+
+    /// Whether Bonjour is actively searching (for debug display).
+    var bonjourSearching: Bool {
+        bonjourBrowser.isSearching
+    }
+
+    /// Debug status from the Bonjour browser.
+    var bonjourDebugStatus: String {
+        bonjourBrowser.debugStatus
     }
 
     // MARK: - Private

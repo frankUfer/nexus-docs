@@ -47,7 +47,7 @@ enum OnboardingError: Error, LocalizedError {
 actor OnboardingClient {
     private let session: URLSession
 
-    init(session: URLSession = .shared) {
+    init(session: URLSession = .nexus) {
         self.session = session
     }
 

@@ -221,11 +221,8 @@ struct AthleticsPerformanceApp: App {
         let auth = AuthManager(deviceConfigStore: deviceConfigStore)
         authManager = auth
 
-        let client = NexusSyncClient(deviceConfigStore: deviceConfigStore, authManager: auth)
         let transport = TransportManager(deviceConfigStore: deviceConfigStore)
-
-        // Wire transport manager to sync client for dual-auth
-        Task { await client.setTransportManager(transport) }
+        let client = NexusSyncClient(deviceConfigStore: deviceConfigStore, authManager: auth, transportManager: transport)
 
         let coordinator = SyncCoordinator(
             patientStore: patientStore,

@@ -21,7 +21,8 @@ func setupAppDirectories(shouldCopyParameterData: Bool) -> Bool {
     let foldersToCreate = [
         "patients",
         "resources/templates",
-        "resources/parameter"
+        "resources/parameter",
+        "resources/tls"
     ]
 
     var success = true
@@ -64,9 +65,42 @@ func setupAppDirectories(shouldCopyParameterData: Bool) -> Bool {
             withExtensions: ["json"],
             seedOnly: true
         )
+
+        // CA certificate → tls (copy by name since .txt is also used for templates)
+        success = success && copyBundleResource(
+            named: "nexus-ca-cert", withExtension: "txt",
+            to: documentsURL.appendingPathComponent("resources/tls/nexus-ca-cert.txt")
+        )
     }
 
     return success
+}
+
+/// Copy a single named bundle resource to a specific destination path (always update when bundle is newer).
+func copyBundleResource(named name: String, withExtension ext: String, to destinationURL: URL) -> Bool {
+    guard let sourceURL = Bundle.main.url(forResource: name, withExtension: ext) else {
+        return true // not a fatal error — file may not be bundled yet
+    }
+    let fileManager = FileManager.default
+    if fileManager.fileExists(atPath: destinationURL.path) {
+        // Overwrite only when bundle version is newer
+        guard let srcDate = (try? fileManager.attributesOfItem(atPath: sourceURL.path))?[.modificationDate] as? Date,
+              let dstDate = (try? fileManager.attributesOfItem(atPath: destinationURL.path))?[.modificationDate] as? Date,
+              srcDate > dstDate else {
+            return true
+        }
+        try? fileManager.removeItem(at: destinationURL)
+    }
+    do {
+        try fileManager.copyItem(at: sourceURL, to: destinationURL)
+        return true
+    } catch {
+        showErrorAlert(errorMessage: String(
+            format: NSLocalizedString("errorCopyingFile", comment: "Error copying file %@: %@"),
+            sourceURL.lastPathComponent, error.localizedDescription
+        ))
+        return false
+    }
 }
 
 func copyResourcesToParameters(destinationURL: URL, withExtensions extensions: [String], seedOnly: Bool = false) -> Bool {

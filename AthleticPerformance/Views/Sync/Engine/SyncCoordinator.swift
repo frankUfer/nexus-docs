@@ -154,9 +154,41 @@ final class SyncCoordinator: ObservableObject {
     // MARK: - Full Sync
 
     func fullSync() async {
+        // First-time sync: enqueue all existing data if nothing has ever been pushed
+        if syncStateStore.state.lastPushAt == nil && outboundQueue.isEmpty {
+            enqueueAllForInitialSync()
+        }
+
         await pushChanges()
         await pullChanges()
         syncStateStore.state.lastSyncAt = Date()
+        syncStateStore.saveState()
+    }
+
+    /// Enqueues all existing patients for initial sync (first-time push).
+    /// Call this once when the device has never synced before.
+    func enqueueAllForInitialSync() {
+        guard let patientStore else { return }
+        let patients = patientStore.patients
+        guard !patients.isEmpty else { return }
+
+        var allChanges: [QueuedChange] = []
+        for patient in patients {
+            let entities = EntityExtractor.extractAll(from: patient)
+            for entity in entities {
+                allChanges.append(QueuedChange(
+                    entityType: entity.entityType,
+                    entityId: entity.entityId,
+                    patientId: entity.patientId,
+                    dataCategory: entity.dataCategory,
+                    data: entity.data,
+                    operation: "create"
+                ))
+            }
+        }
+
+        outboundQueue.enqueueAll(allChanges)
+        syncStateStore.state.pendingChangeCount = outboundQueue.count
         syncStateStore.saveState()
     }
 

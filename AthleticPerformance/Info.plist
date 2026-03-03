@@ -4,5 +4,16 @@
 <dict>
 	<key>UIFileSharingEnabled</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Nexus needs local network access to discover and connect to the Nexus server for data synchronization.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_nexus._tcp</string>
+	</array>
 </dict>
 </plist>

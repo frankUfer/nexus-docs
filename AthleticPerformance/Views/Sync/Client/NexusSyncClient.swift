@@ -1,38 +1,45 @@
 import Foundation
 
-enum SyncClientError: Error {
+enum SyncClientError: Error, LocalizedError {
     case noServerURL
     case unauthorized
     case rateLimited(retryAfter: TimeInterval?)
     case serverError(statusCode: Int, body: String?)
     case networkError(Error)
     case decodingError(Error)
+
+    var errorDescription: String? {
+        switch self {
+        case .noServerURL: return "No server URL configured"
+        case .unauthorized: return "Authentication failed"
+        case .rateLimited: return "Rate limited — try again later"
+        case .serverError(let code, let body): return "Server error \(code): \(body ?? "no details")"
+        case .networkError(let err): return "Network: \(err.localizedDescription)"
+        case .decodingError(let err): return "Decode: \(err.localizedDescription)"
+        }
+    }
 }
 
 actor NexusSyncClient {
     private let session: URLSession
     private let deviceConfigStore: DeviceConfigStore
     private let authManager: AuthManager
-    private var transportManager: TransportManager?
+    private let transportManager: TransportManager
 
     private let decoder = JSONDecoder.syncDecoder
     private let encoder = JSONEncoder.syncEncoder
 
-    init(deviceConfigStore: DeviceConfigStore, authManager: AuthManager, session: URLSession = .shared) {
+    init(deviceConfigStore: DeviceConfigStore, authManager: AuthManager, transportManager: TransportManager, session: URLSession = .nexus) {
         self.deviceConfigStore = deviceConfigStore
         self.authManager = authManager
+        self.transportManager = transportManager
         self.session = session
-    }
-
-    /// Set the transport manager for dual-auth support.
-    func setTransportManager(_ manager: TransportManager) {
-        self.transportManager = manager
     }
 
     // MARK: - Push
 
     func push(_ request: SyncPushRequest) async throws -> SyncPushResponse {
-        let url = try await baseURL().appendingPathComponent("sync/push")
+        let url = try await baseURL().appendingPathComponent("api/v1/sync/push")
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -43,7 +50,7 @@ actor NexusSyncClient {
     // MARK: - Pull
 
     func pull(sinceVersion: Int, limit: Int = 500) async throws -> SyncPullResponse {
-        var components = URLComponents(url: try await baseURL().appendingPathComponent("sync/pull"), resolvingAgainstBaseURL: false)!
+        var components = URLComponents(url: try await baseURL().appendingPathComponent("api/v1/sync/pull"), resolvingAgainstBaseURL: false)!
         let deviceId = await deviceConfigStore.config.deviceId
         components.queryItems = [
             URLQueryItem(name: "device_id", value: deviceId.uuidString),
@@ -58,7 +65,7 @@ actor NexusSyncClient {
     // MARK: - Upload
 
     func upload(token: String, fileData: Data, filename: String, contentType: String) async throws -> SyncUploadResponse {
-        let url = try await baseURL().appendingPathComponent("sync/upload/\(token)")
+        let url = try await baseURL().appendingPathComponent("api/v1/sync/upload/\(token)")
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
 
@@ -79,7 +86,7 @@ actor NexusSyncClient {
     // MARK: - Download
 
     func download(token: String) async throws -> Data {
-        let url = try await baseURL().appendingPathComponent("sync/download/\(token)")
+        let url = try await baseURL().appendingPathComponent("api/v1/sync/download/\(token)")
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "GET"
         return try await downloadWithAuth(urlRequest)
@@ -88,7 +95,7 @@ actor NexusSyncClient {
     // MARK: - Status
 
     func status() async throws -> SyncStatusResponse {
-        let url = try await baseURL().appendingPathComponent("sync/status")
+        let url = try await baseURL().appendingPathComponent("api/v1/sync/status")
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "GET"
         return try await performWithAuth(urlRequest)
@@ -98,7 +105,7 @@ actor NexusSyncClient {
 
     private func baseURL() async throws -> URL {
         // Prefer Bonjour-discovered URL, fall back to manual config
-        if let tm = transportManager, let preferred = await tm.preferredServerURL,
+        if let preferred = await transportManager.preferredServerURL,
            let url = URL(string: preferred) {
             return url
         }
@@ -113,7 +120,7 @@ actor NexusSyncClient {
 
     /// Apply auth headers based on transport: X-Device-ID (wired) or Bearer JWT (VPN).
     private func applyAuth(_ request: inout URLRequest) async throws {
-        let isWired = await transportManager?.isWired ?? false
+        let isWired = await transportManager.isWired
 
         if isWired {
             let deviceId = await deviceConfigStore.config.deviceId.uuidString
@@ -133,7 +140,7 @@ actor NexusSyncClient {
             return try await execute(req)
         } catch SyncClientError.unauthorized {
             // Only retry with re-auth for VPN (JWT) — wired auth doesn't have tokens
-            let isWired = await transportManager?.isWired ?? false
+            let isWired = await transportManager.isWired
             guard !isWired else { throw SyncClientError.unauthorized }
 
             let newToken = try await authManager.reauthenticate()
@@ -151,7 +158,7 @@ actor NexusSyncClient {
         do {
             return try await executeRaw(req)
         } catch SyncClientError.unauthorized {
-            let isWired = await transportManager?.isWired ?? false
+            let isWired = await transportManager.isWired
             guard !isWired else { throw SyncClientError.unauthorized }
 
             let newToken = try await authManager.reauthenticate()
