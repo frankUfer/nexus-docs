@@ -1,6 +1,6 @@
 # Nexus Development Workflow
 
-> Last updated: 2026-02-15 (manifest-based flattening validation added)
+> Last updated: 2026-03-03
 
 ## Development Environment
 
@@ -194,24 +194,57 @@ uv run pytest
 open ~/Projects/nexus/AthleticPerformance/AthleticPerformance.xcodeproj
 ```
 
-### Deploy to Server
+### Deploy Overview
+
+Each repo deploys independently to its target:
+
+| Repo | Command | Target | What it does |
+|------|---------|--------|-------------|
+| **nexus-core** | `./deploy/deploy.sh 192.168.178.13` | Ubuntu server | Test → rsync → uv sync → migrate → restart services → verify |
+| **nexus-gate** | `./deploy/deploy.sh` (from nexus-gate/) | Raspberry Pi | Rsync config + scripts to RPi |
+| **nexus** (root) | `git push` | GitHub only | Docs + iPad app source (no server deploy) |
+| **iPad app** | Xcode → Build & Run | iPad via USB/WiFi | Deploy via Xcode to connected iPad |
+
+### Deploy nexus-core to Ubuntu Server
 
 ```bash
 cd ~/Projects/nexus/nexus-core
-./deploy/deploy.sh
+./deploy/deploy.sh 192.168.178.13
 ```
 
 The deploy script:
-1. Runs tests locally
-2. Rsync's source code to nexus-server
-3. SSH's into server to run uv sync
-4. Restarts affected systemd services
-5. Verifies health endpoint responds
+1. Runs tests locally (aborts if any fail)
+2. Rsyncs source code, migrations, and deploy files to `/opt/nexus/nexus-core`
+3. Installs/updates dependencies on server (`uv sync --frozen`)
+4. Runs database migrations (`alembic upgrade head`)
+5. Updates systemd unit files and reloads daemon
+6. Restarts `nexus-sync` and re-enables all timers
+7. Verifies health endpoint responds (HTTP 200)
+
+**Prerequisites on the server:**
+- SSH key-based access for `frank` (no password)
+- `frank` has passwordless sudo (`/etc/sudoers.d/frank`)
+- `/opt/nexus/` owned by `frank` (`sudo chown -R frank:frank /opt/nexus`)
+- `/etc/nexus/nexus.env` readable by `frank` (permissions `640`, group `frank`)
+- `uv` installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
+- `avahi-daemon` installed for Bonjour discovery (`sudo apt install avahi-daemon`)
+
+**One-time: install avahi service (after first deploy):**
+```bash
+ssh 192.168.178.13 "sudo cp /opt/nexus/nexus-core/deploy/avahi/nexus.service /etc/avahi/services/ && sudo systemctl restart avahi-daemon"
+```
+
+### Deploy nexus-gate to Raspberry Pi
+
+```bash
+cd ~/Projects/nexus/nexus-gate
+./deploy/deploy.sh
+```
 
 ### Server Provisioning (First Time)
 
 ```bash
-cd ~/Projects/nexus-core
+cd ~/Projects/nexus/nexus-core
 ./deploy/setup-server.sh nexus-server.local
 ```
 
