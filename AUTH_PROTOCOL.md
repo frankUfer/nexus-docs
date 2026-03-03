@@ -1,17 +1,25 @@
 # Nexus Authentication Protocol
 
-> Last updated: 2026-02-15
+> Last updated: 2026-03-03
 > Status: ACTIVE — Guardian implements this; clients build against it
 
 ## Overview
 
-All API access to the Nexus platform requires a JWT bearer token issued by
-Guardian (nexus-gate). Devices authenticate with `device_id` + `password`
-over the WireGuard VPN. Guardian verifies credentials, validates the source
-IP against the device's registered VPN IP, and returns a signed JWT.
+Nexus supports two authentication paths depending on transport
+(see [ADR-005](decisions/005-wired-onboarding.md)):
 
-The same JWT is accepted by both Guardian and nexus-core — they share the
-signing secret (`NEXUS_JWT_SECRET`).
+- **VPN (WireGuard)**: JWT bearer token issued by Guardian (nexus-gate).
+  Devices authenticate with `device_id` + `password`. Guardian verifies
+  credentials, validates the source IP, and returns a signed JWT.
+- **Wired (USB)**: `X-Device-ID` header with a registered device UUID.
+  No JWT required — physical cable provides the trust boundary. The server
+  verifies the source IP is local (not from the VPN subnet).
+
+The dual-auth middleware in nexus-core selects the strategy based on source IP:
+- From VPN subnet (10.10.0.0/24) → require JWT Bearer token
+- From local/USB interface → accept `X-Device-ID` header
+
+The JWT path is described in detail below. For wired auth, see ADR-005.
 
 ```
 iPad / Client                    nexus-gate (Guardian)              nexus-core
@@ -46,7 +54,20 @@ WireGuard VPN subnet (`10.10.0.0/24`). No TLS — the VPN provides encryption.
 
 ## Device Registration (Prerequisite)
 
-Before a device can authenticate, it must be registered on the gateway:
+Before a device can authenticate, it must be registered. Two methods are
+available:
+
+### Automated Onboarding (recommended — ADR-005)
+
+1. Admin generates a 6-digit setup code via CLI or API
+2. iPad connects via USB, discovers server via Bonjour
+3. iPad claims the code → receives config bundle (device_id, password,
+   WireGuard config) automatically stored in Keychain
+4. No manual credential entry required
+
+See [ADR-005](decisions/005-wired-onboarding.md) for the full onboarding flow.
+
+### Manual Registration (fallback)
 
 ```bash
 ./scripts/register-device.sh <name> <type> <vpn_ip> <wg_public_key>
@@ -256,8 +277,10 @@ There is no refresh token — re-authenticate with `POST /auth/token`.
 
 ## Using Tokens with nexus-core
 
-All nexus-core sync API requests require a Bearer token in the
-`Authorization` header:
+nexus-core supports dual authentication (ADR-005). The auth strategy is
+selected automatically based on the client's source IP.
+
+### VPN Requests (JWT Bearer)
 
 ```http
 POST /sync/push HTTP/1.1
@@ -271,7 +294,22 @@ extracts `device_id` to identify the calling device. It additionally
 verifies that the device exists and is active in its own device state
 table (`staging.sync_device_state`).
 
-**nexus-core auth errors:**
+### Wired Requests (X-Device-ID)
+
+```http
+POST /sync/push HTTP/1.1
+Host: nexus-server.local:8443
+X-Device-ID: 550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+```
+
+For requests from local/USB interfaces (not the VPN subnet), nexus-core
+accepts the `X-Device-ID` header directly. No JWT is required — the
+physical cable provides the trust boundary.
+
+### nexus-core Auth Errors
+
+**VPN path:**
 
 | Status | Detail                                   | Cause                           |
 |--------|------------------------------------------|---------------------------------|
@@ -280,7 +318,14 @@ table (`staging.sync_device_state`).
 | 401    | `"Token missing device_id"`              | JWT payload lacks `device_id`   |
 | 401    | `"Invalid device_id in token"`           | `device_id` is not a valid UUID |
 | 401    | `"Device not registered or inactive"`    | Device unknown to nexus-core    |
-| 403    | (not used currently)                     | Reserved for future RBAC        |
+
+**Wired path:**
+
+| Status | Detail                                   | Cause                           |
+|--------|------------------------------------------|---------------------------------|
+| 401    | `"X-Device-ID header required for wired connections"` | Missing header     |
+| 401    | `"Invalid device_id in token"`           | `device_id` is not a valid UUID |
+| 401    | `"Device not registered or inactive"`    | Device unknown to nexus-core    |
 
 ---
 
@@ -464,7 +509,10 @@ to re-authenticate after a gateway failover.
 
 ### nexus-core Environment Variables
 
-| Variable               | Default       | Description                     |
-|------------------------|---------------|---------------------------------|
-| `NEXUS_JWT_SECRET`     | *(required)*  | Must match Guardian's secret    |
-| `NEXUS_JWT_ALGORITHM`  | `HS256`       | Must match Guardian's algorithm |
+| Variable               | Default        | Description                     |
+|------------------------|----------------|---------------------------------|
+| `NEXUS_JWT_SECRET`     | *(required)*   | Must match Guardian's secret    |
+| `NEXUS_JWT_ALGORITHM`  | `HS256`        | Must match Guardian's algorithm |
+| `NEXUS_VPN_SUBNET`     | `10.10.0.0/24` | VPN subnet — requests from here require JWT |
+| `NEXUS_DEPLOYMENT_TIER`| `full`         | `full` (Ubuntu + Guardian) or `local` (Mac-only) |
+| `NEXUS_GUARDIAN_URL`   | `http://10.10.0.1:8080` | Guardian base URL for provisioning |

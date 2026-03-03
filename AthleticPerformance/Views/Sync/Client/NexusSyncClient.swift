@@ -13,6 +13,7 @@ actor NexusSyncClient {
     private let session: URLSession
     private let deviceConfigStore: DeviceConfigStore
     private let authManager: AuthManager
+    private var transportManager: TransportManager?
 
     private let decoder = JSONDecoder.syncDecoder
     private let encoder = JSONEncoder.syncEncoder
@@ -21,6 +22,11 @@ actor NexusSyncClient {
         self.deviceConfigStore = deviceConfigStore
         self.authManager = authManager
         self.session = session
+    }
+
+    /// Set the transport manager for dual-auth support.
+    func setTransportManager(_ manager: TransportManager) {
+        self.transportManager = manager
     }
 
     // MARK: - Push
@@ -91,6 +97,11 @@ actor NexusSyncClient {
     // MARK: - Base URL
 
     private func baseURL() async throws -> URL {
+        // Prefer Bonjour-discovered URL, fall back to manual config
+        if let tm = transportManager, let preferred = await tm.preferredServerURL,
+           let url = URL(string: preferred) {
+            return url
+        }
         let serverURL = await deviceConfigStore.config.serverURL
         guard !serverURL.isEmpty, let url = URL(string: serverURL) else {
             throw SyncClientError.noServerURL
@@ -100,16 +111,31 @@ actor NexusSyncClient {
 
     // MARK: - Auth + Retry
 
-    /// Execute a request with Bearer token. On 401, re-authenticates and retries once.
+    /// Apply auth headers based on transport: X-Device-ID (wired) or Bearer JWT (VPN).
+    private func applyAuth(_ request: inout URLRequest) async throws {
+        let isWired = await transportManager?.isWired ?? false
+
+        if isWired {
+            let deviceId = await deviceConfigStore.config.deviceId.uuidString
+            request.setValue(deviceId, forHTTPHeaderField: "X-Device-ID")
+        } else {
+            let token = try await authManager.ensureValidToken()
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+    }
+
+    /// Execute a request with appropriate auth. On 401 via VPN, re-authenticates and retries once.
     private func performWithAuth<T: Decodable>(_ request: URLRequest) async throws -> T {
         var req = request
-        let token = try await authManager.ensureValidToken()
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        try await applyAuth(&req)
 
         do {
             return try await execute(req)
         } catch SyncClientError.unauthorized {
-            // Token rejected — re-authenticate with Guardian and retry once
+            // Only retry with re-auth for VPN (JWT) — wired auth doesn't have tokens
+            let isWired = await transportManager?.isWired ?? false
+            guard !isWired else { throw SyncClientError.unauthorized }
+
             let newToken = try await authManager.reauthenticate()
             var retryReq = request
             retryReq.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
@@ -117,15 +143,17 @@ actor NexusSyncClient {
         }
     }
 
-    /// Execute a raw data download with Bearer token. On 401, retries once.
+    /// Execute a raw data download with appropriate auth. On 401 via VPN, retries once.
     private func downloadWithAuth(_ request: URLRequest) async throws -> Data {
         var req = request
-        let token = try await authManager.ensureValidToken()
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        try await applyAuth(&req)
 
         do {
             return try await executeRaw(req)
         } catch SyncClientError.unauthorized {
+            let isWired = await transportManager?.isWired ?? false
+            guard !isWired else { throw SyncClientError.unauthorized }
+
             let newToken = try await authManager.reauthenticate()
             var retryReq = request
             retryReq.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")

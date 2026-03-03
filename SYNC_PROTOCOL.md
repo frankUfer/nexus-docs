@@ -1,6 +1,6 @@
 # Nexus Sync Protocol Specification
 
-> Last updated: 2026-02-14
+> Last updated: 2026-03-03
 > Status: DRAFT — to be finalized before implementation
 
 ## Overview
@@ -69,11 +69,25 @@ Each iPad is registered as a device with:
 ```
 device_id:    UUID (generated on first registration)
 device_name:  Human-readable label ("nexus-field-01")
-password:     Random credential (shown once, stored as bcrypt hash)
-wireguard_ip: 10.10.0.1XX
+password:     Random credential (stored as bcrypt hash; full tier only)
+wireguard_ip: 10.10.0.1XX (full tier only)
 ```
 
-Registration is a one-time process performed by an administrator.
+### Automated Onboarding (ADR-005)
+
+Registration is automated via 6-digit setup codes over wired USB connections:
+
+1. Admin generates a code: `nexus-core provision --generate-code --name "ipad-01"`
+2. iPad discovers server via Bonjour (`_nexus._tcp`)
+3. User enters the 6-digit code on the iPad
+4. iPad calls `POST /api/v1/provision/claim` → receives config bundle
+5. All credentials stored in Keychain automatically
+
+See [ADR-005](decisions/005-wired-onboarding.md) for the full onboarding flow.
+
+### Manual Registration (fallback)
+
+Manual registration via `register-device.sh` is still supported as a fallback.
 The device receives its device_id, password, and WireGuard configuration.
 It authenticates via `POST /auth/token` to obtain a JWT bearer token.
 See [AUTH_PROTOCOL.md](AUTH_PROTOCOL.md) for the full authentication contract.
@@ -82,9 +96,12 @@ See [AUTH_PROTOCOL.md](AUTH_PROTOCOL.md) for the full authentication contract.
 
 Base URL: `https://nexus-server.local:8443/api/v1`
 
-All endpoints require:
-- Valid WireGuard tunnel (network layer)
-- Bearer token in Authorization header (application layer)
+All endpoints require one of (see [ADR-005](decisions/005-wired-onboarding.md)):
+- **Wired (USB)**: `X-Device-ID` header with a registered device UUID
+- **VPN (WireGuard)**: Bearer token in Authorization header
+
+The server's dual-auth middleware selects the auth strategy based on source IP:
+requests from the VPN subnet require JWT; local/USB requests accept `X-Device-ID`.
 
 ### POST /sync/push
 
@@ -420,13 +437,16 @@ Attachments follow the same conflict rules as their parent entity.
 
 ## Security
 
-- All sync traffic flows through WireGuard tunnel
-- JWT bearer token in Authorization header (issued by Guardian)
+- **Wired (USB)**: Physical cable provides trust boundary; `X-Device-ID`
+  header identifies the device; server verifies source is local interface
+- **VPN**: All traffic flows through WireGuard tunnel; JWT bearer token in
+  Authorization header (issued by Guardian)
 - TLS on the API endpoint (defense in depth)
-- Device registration is admin-only
-- Token expiry: 60 minutes, re-authenticate with stored credentials
-- Rate limiting: 3 failed attempts in 10 min → 30 min block
+- Device registration via automated onboarding (6-digit codes) or manual
+- Token expiry: 60 minutes, re-authenticate with stored credentials (VPN only)
+- Rate limiting: 3 failed attempts in 10 min → 30 min block (VPN only)
 - See [AUTH_PROTOCOL.md](AUTH_PROTOCOL.md) for full authentication details
+- See [ADR-005](decisions/005-wired-onboarding.md) for dual-transport security model
 
 ## Open Questions
 

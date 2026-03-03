@@ -21,7 +21,10 @@ final class SyncCoordinator: ObservableObject {
     let versionTracker: EntityVersionTracker
     let syncStateStore: SyncStateStore
     let deviceConfigStore: DeviceConfigStore
-    let connectivityMonitor: ConnectivityMonitor
+    let transportManager: TransportManager
+
+    /// Backward-compatible alias — used by existing code that references connectivityMonitor.
+    var connectivityMonitor: TransportManager { transportManager }
 
     private let client: NexusSyncClient
     private weak var patientStore: PatientStore?
@@ -38,7 +41,7 @@ final class SyncCoordinator: ObservableObject {
         syncStateStore: SyncStateStore,
         deviceConfigStore: DeviceConfigStore,
         client: NexusSyncClient,
-        connectivityMonitor: ConnectivityMonitor
+        transportManager: TransportManager
     ) {
         self.patientStore = patientStore
         self.outboundQueue = outboundQueue
@@ -46,7 +49,7 @@ final class SyncCoordinator: ObservableObject {
         self.syncStateStore = syncStateStore
         self.deviceConfigStore = deviceConfigStore
         self.client = client
-        self.connectivityMonitor = connectivityMonitor
+        self.transportManager = transportManager
 
         // Wire patient changes to the outbound queue
         patientStore.onPatientChanged = { [weak self] newPatient, oldPatient in
@@ -57,10 +60,10 @@ final class SyncCoordinator: ObservableObject {
     // MARK: - Auto Sync
 
     func startAutoSync() {
-        connectivityMonitor.startMonitoring()
+        transportManager.startMonitoring()
 
         // Watch connectivity + queue count — push when server reachable and queue non-empty
-        connectivityMonitor.$isServerReachable
+        transportManager.$isServerReachable
             .combineLatest(outboundQueue.$items)
             .debounce(for: .seconds(2), scheduler: RunLoop.main)
             .sink { [weak self] (reachable, items) in
@@ -73,13 +76,13 @@ final class SyncCoordinator: ObservableObject {
         pullTimer = Timer.publish(every: 300, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
-                guard let self, self.connectivityMonitor.isServerReachable, self.status == .idle else { return }
+                guard let self, self.transportManager.isServerReachable, self.status == .idle else { return }
                 Task { await self.pullChanges() }
             }
     }
 
     func stopAutoSync() {
-        connectivityMonitor.stopMonitoring()
+        transportManager.stopMonitoring()
         cancellables.removeAll()
         pullTimer?.cancel()
         pullTimer = nil
@@ -89,7 +92,7 @@ final class SyncCoordinator: ObservableObject {
 
     /// Attempt a final push when the app goes to background.
     func pushOnBackground() {
-        guard connectivityMonitor.isServerReachable, !outboundQueue.isEmpty else { return }
+        guard transportManager.isServerReachable, !outboundQueue.isEmpty else { return }
         autoSyncTask = Task {
             await pushChanges()
         }

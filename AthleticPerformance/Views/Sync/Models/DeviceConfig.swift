@@ -6,6 +6,18 @@ struct DeviceConfig: Codable {
     var serverURL: String
     var guardianURL: String
     var isRegistered: Bool
+    var deploymentTier: String  // "full" or "local"
+    var wireguardConfig: String?  // WireGuard client config (full tier only)
+
+    /// Whether this device was provisioned (has a server URL and is registered).
+    var isProvisioned: Bool {
+        isRegistered && !serverURL.isEmpty
+    }
+
+    /// Whether this is a full-tier deployment (VPN + Guardian).
+    var isFullTier: Bool {
+        deploymentTier == "full"
+    }
 
     static func `default`() -> DeviceConfig {
         DeviceConfig(
@@ -13,11 +25,13 @@ struct DeviceConfig: Codable {
             deviceName: "",
             serverURL: "",
             guardianURL: "",
-            isRegistered: false
+            isRegistered: false,
+            deploymentTier: "local",
+            wireguardConfig: nil
         )
     }
 
-    // Backward-compatible decoding: existing files without guardianURL still load.
+    // Backward-compatible decoding: existing files without new fields still load.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         deviceId = try container.decode(UUID.self, forKey: .deviceId)
@@ -25,14 +39,19 @@ struct DeviceConfig: Codable {
         serverURL = try container.decode(String.self, forKey: .serverURL)
         guardianURL = try container.decodeIfPresent(String.self, forKey: .guardianURL) ?? ""
         isRegistered = try container.decode(Bool.self, forKey: .isRegistered)
+        deploymentTier = try container.decodeIfPresent(String.self, forKey: .deploymentTier) ?? "local"
+        wireguardConfig = try container.decodeIfPresent(String.self, forKey: .wireguardConfig)
     }
 
-    init(deviceId: UUID, deviceName: String, serverURL: String, guardianURL: String, isRegistered: Bool) {
+    init(deviceId: UUID, deviceName: String, serverURL: String, guardianURL: String,
+         isRegistered: Bool, deploymentTier: String = "local", wireguardConfig: String? = nil) {
         self.deviceId = deviceId
         self.deviceName = deviceName
         self.serverURL = serverURL
         self.guardianURL = guardianURL
         self.isRegistered = isRegistered
+        self.deploymentTier = deploymentTier
+        self.wireguardConfig = wireguardConfig
     }
 }
 

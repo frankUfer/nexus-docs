@@ -1,6 +1,8 @@
 import SwiftUI
 
-/// Sync settings: server URLs, device identity, Guardian authentication, connection test.
+/// Sync settings: shows current configuration (auto-provisioned via onboarding) and connection status.
+///
+/// Manual configuration is still available as a fallback for advanced users.
 struct SyncSettingsView: View {
     @EnvironmentObject var deviceConfigStore: DeviceConfigStore
     @EnvironmentObject var authManager: AuthManager
@@ -12,17 +14,51 @@ struct SyncSettingsView: View {
     @State private var passwordInput: String = ""
     @State private var testResult: String?
     @State private var isTesting = false
+    @State private var showManualConfig = false
 
     var body: some View {
         Form {
-            serverSection
-            deviceSection
-            authSection
+            if deviceConfigStore.config.isProvisioned {
+                provisionedSection
+            }
+            if showManualConfig || !deviceConfigStore.config.isProvisioned {
+                serverSection
+                deviceSection
+                authSection
+                saveSection
+            }
             connectionSection
-            saveSection
+            if deviceConfigStore.config.isProvisioned && !showManualConfig {
+                Section {
+                    Button("Show Manual Configuration") {
+                        showManualConfig = true
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+            }
         }
         .navigationTitle(NSLocalizedString("syncSettingsTitle", comment: "Sync Settings"))
         .onAppear { loadFields() }
+    }
+
+    // MARK: - Provisioned Status
+
+    private var provisionedSection: some View {
+        Section("Device Status") {
+            LabeledContent("Device", deviceConfigStore.config.deviceName)
+            LabeledContent("Server", deviceConfigStore.config.serverURL)
+            LabeledContent("Tier", deviceConfigStore.config.deploymentTier.capitalized)
+            if deviceConfigStore.config.isFullTier {
+                LabeledContent("Guardian", deviceConfigStore.config.guardianURL)
+            }
+            HStack {
+                Text("Provisioned")
+                Spacer()
+                Image(systemName: "checkmark.seal.fill")
+                    .foregroundStyle(.green)
+            }
+        }
     }
 
     // MARK: - Server Configuration

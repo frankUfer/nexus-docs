@@ -106,4 +106,27 @@ enum KeychainHelper {
     static func deleteTokenMetadata() -> Bool {
         delete(account: "jwt_metadata")
     }
+
+    // MARK: - WireGuard Keys (ADR-005)
+
+    static func saveWireGuardPrivateKey(_ key: String) -> Bool {
+        save(key, account: "wg_private_key")
+    }
+
+    static func loadWireGuardPrivateKey() -> String? {
+        load(account: "wg_private_key")
+    }
+
+    static func saveWireGuardPublicKey(_ key: String) -> Bool {
+        save(key, account: "wg_public_key")
+    }
+
+    static func loadWireGuardPublicKey() -> String? {
+        load(account: "wg_public_key")
+    }
+
+    @discardableResult
+    static func deleteWireGuardKeys() -> Bool {
+        delete(account: "wg_private_key") && delete(account: "wg_public_key")
+    }
 }

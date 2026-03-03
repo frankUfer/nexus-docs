@@ -1,14 +1,15 @@
 # Nexus Security Architecture
 
-> Last updated: 2026-02-15
+> Last updated: 2026-03-03
 
 ## Security Layers
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│ Layer 1: NETWORK — WireGuard VPN                    │
-│   All traffic encrypted; no services exposed to     │
-│   public internet                                   │
+│ Layer 1: NETWORK — WireGuard VPN or USB wired       │
+│   VPN: all traffic encrypted                         │
+│   USB: physical cable provides isolation             │
+│   No services exposed to public internet             │
 ├─────────────────────────────────────────────────────┤
 │ Layer 2: FIREWALL — UFW                             │
 │   Allowlist-only on gateway AND server              │
@@ -19,7 +20,7 @@
 │   Defense in depth                                  │
 ├─────────────────────────────────────────────────────┤
 │ Layer 4: AUTHENTICATION                             │
-│   Device identity + JWT API tokens                  │
+│   Dual-auth: X-Device-ID (wired) or JWT (VPN)      │
 │   SSH key-only access to servers                    │
 ├─────────────────────────────────────────────────────┤
 │ Layer 5: AUTHORIZATION                              │
@@ -42,9 +43,11 @@
 
 ### Peer Management
 
-- New peers added by administrator only
-- Each peer gets: WireGuard config, API token, device_id
-- Revocation: remove peer from WireGuard config + revoke API token
+- New peers added via automated onboarding (6-digit codes) or manually
+- Each peer gets: WireGuard config, API token, device_id (auto-provisioned
+  or manually delivered)
+- Revocation: remove peer from WireGuard config + revoke API token +
+  set `is_active = false` in device state
 - Peer list version-controlled in nexus-gate repo (keys excluded)
 
 ## Firewall Rules (UFW)
@@ -71,11 +74,22 @@ Allow: TCP 8080  from 10.10.0.0/24   (Clarity, if served from here)
 ## Authentication
 
 ### iPad Devices (nexus-field)
+
+Dual-transport authentication (see [ADR-005](decisions/005-wired-onboarding.md)):
+
+**VPN path (WireGuard):**
 1. WireGuard tunnel must be active (network-level identity)
 2. JWT bearer token in API requests (application-level identity)
 3. Token contains: device_id, iat, exp (see [AUTH_PROTOCOL.md](AUTH_PROTOCOL.md))
 4. Token signed with shared secret (HS256)
 5. Token expiry: 60 minutes (configurable). No refresh — re-authenticate with credentials
+
+**Wired path (USB):**
+1. Physical USB cable provides trust boundary
+2. `X-Device-ID` header identifies the device
+3. Server verifies source IP is local (not VPN subnet) before accepting
+4. No JWT required — no token expiry, no rate limiting
+5. device_id must be registered and active in `sync_device_state`
 
 ### SSH Access (admin)
 - Key-based authentication only (PasswordAuthentication no)
@@ -113,6 +127,17 @@ Allow: TCP 8080  from 10.10.0.0/24   (Clarity, if served from here)
 - nexus-health monitors: failed auth attempts, unusual sync patterns
 - journald alerts on repeated 401/403 responses
 - Daily log review (automated summary via nexus-health)
+
+## Dual-Transport Threat Model (ADR-005)
+
+| Threat | Mitigation |
+|--------|-----------|
+| VPN device sends forged X-Device-ID | Server checks source IP — VPN subnet → JWT required |
+| Unknown iPad plugged in via USB | device_id must exist in `sync_device_state` |
+| Unauthorized onboarding | 6-digit setup code, 5 min TTL, single use, admin-generated |
+| Stolen iPad (wired) | `is_active = false` blocks both wired and VPN |
+| Provisioning endpoint abuse | Bound to local/USB interface only, not VPN |
+| Guardian admin API abuse | Restricted to nexus-server IP (10.10.0.10) or localhost |
 
 ## Incident Response
 

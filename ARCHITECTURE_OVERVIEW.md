@@ -1,6 +1,6 @@
 # Nexus Platform — Architecture Overview
 
-> Last updated: 2026-02-13
+> Last updated: 2026-03-03
 
 ## Purpose
 
@@ -19,6 +19,8 @@ sources, and manual imports — all without cloud dependencies.
 
 ## Physical Topology
 
+### Full Nexus (Ubuntu — production)
+
 ```
                         INTERNET / WAN
                               │
@@ -28,36 +30,52 @@ sources, and manual imports — all without cloud dependencies.
      │ iPad 01  │       │ iPad 02  │       │ iPad NN  │
      │ (nexus-  │       │ (nexus-  │       │ (nexus-  │
      │  field)  │       │  field)  │       │  field)  │
-     └────┬─────┘       └────┬─────┘       └────┬─────┘
-          │ WireGuard        │                   │
-          └──────────┬───────┴───────────────────┘
-                     │
-              ┌──────▼──────────┐
-              │  nexus-gate     │
-              │  Raspberry Pi   │
-              │  WireGuard +    │
-              │  UFW + dnsmasq  │
-              │  10.10.0.1      │
-              └──────┬──────────┘
-                     │ LAN
-       ══════════════╪═══════════════════════════
-                     │
-              ┌──────▼──────────┐       ┌─────────────┐
-              │  nexus-server   │       │  NAS         │
-              │  Ubuntu Server  │──────►│  Backup      │
-              │  PostgreSQL     │       │  target      │
-              │  Python workers │       └─────────────┘
-              │  10.10.0.10     │
-              └──────┬──────────┘
-                     │
-              ┌──────▼──────────┐
-              │  nexus-mac      │
-              │  MacBook Pro    │
-              │  Development    │
-              │  Clarity desktop│
-              │  10.10.0.20     │
-              └─────────────────┘
+     └──┬───┬───┘       └──┬───┬───┘       └──┬───┬───┘
+        │   │ WireGuard     │   │              │   │
+   USB  │   └──────────┬────┘   └──────────────┘   │ USB
+        │              │                           │
+        │       ┌──────▼──────────┐                │
+        │       │  nexus-gate     │                │
+        │       │  Raspberry Pi   │                │
+        │       │  WireGuard +    │                │
+        │       │  UFW + Guardian │                │
+        │       │  10.10.0.1      │                │
+        │       └──────┬──────────┘                │
+        │              │ LAN                       │
+   ═════╪══════════════╪═══════════════════════════╪══
+        │              │                           │
+        │       ┌──────▼──────────┐       ┌────────┘
+        └──────►│  nexus-server   │◄──────┘
+                │  Ubuntu Server  │       ┌─────────────┐
+                │  PostgreSQL     │──────►│  NAS         │
+                │  Python workers │       │  Backup      │
+                │  avahi (Bonjour)│       └─────────────┘
+                │  10.10.0.10     │
+                └──────┬──────────┘
+                       │
+                ┌──────▼──────────┐
+                │  nexus-mac      │
+                │  MacBook Pro    │
+                │  Development    │
+                │  Clarity desktop│
+                │  10.10.0.20     │
+                └─────────────────┘
 ```
+
+iPads connect via **USB cable** (primary, wired) or **WireGuard VPN** (remote).
+See [ADR-005](decisions/005-wired-onboarding.md) for the dual-transport design.
+
+### Local Nexus (Mac — development/small deployment)
+
+```
+     ┌──────────┐    USB cable    ┌──────────────────┐
+     │  iPad    │────────────────►│  Mac             │
+     │          │  X-Device-ID    │  nexus-core      │
+     └──────────┘                 │  PostgreSQL      │
+                                  └──────────────────┘
+```
+
+No VPN, no Guardian. Wired-only with `X-Device-ID` authentication.
 
 ## VPN Network (WireGuard)
 
@@ -136,7 +154,10 @@ local database dependency.
 
 **Key behaviors:**
 - Full functionality without network
-- Background sync when VPN is reachable
+- Background sync when VPN or USB is reachable
+- Automatic server discovery via Bonjour (`_nexus._tcp`)
+- Dual-transport: prefers wired USB, falls back to VPN
+- Automated onboarding via 6-digit setup codes (no manual config)
 - Three-tier conflict resolution:
   - Master & transactional data: iPad wins (field authority)
   - Parameters: server wins (central management)
@@ -145,6 +166,7 @@ local database dependency.
 - Pull parameter updates and cross-device patient changes
 
 See [SYNC_PROTOCOL.md](SYNC_PROTOCOL.md) for the complete specification.
+See [ADR-005](decisions/005-wired-onboarding.md) for the dual-transport design.
 
 ### Clarity (BI Tool)
 
@@ -202,9 +224,9 @@ Can also connect to other data sources independently.
 
 | Layer         | Mechanism                                          |
 |---------------|----------------------------------------------------|
-| Transport     | WireGuard VPN (all traffic encrypted)              |
+| Transport     | WireGuard VPN or USB wired (all traffic encrypted or physically isolated) |
 | Network       | UFW on gateway + server; allowlist only             |
-| Authentication| Device certificates + API tokens over VPN           |
+| Authentication| Dual-auth: X-Device-ID (wired) or JWT Bearer (VPN) |
 | Authorization | PostgreSQL roles (nexus_sync, nexus_etl, etc.)     |
 | API           | TLS on FastAPI (defense in depth, even inside VPN) |
 | SSH           | Key-only, no passwords, fail2ban                   |

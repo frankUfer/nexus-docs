@@ -52,7 +52,7 @@ struct AthleticsPerformanceApp: App {
                 .onChange(of: scenePhase) { _, newPhase in
                     switch newPhase {
                     case .active:
-                        Task { await syncCoordinator?.connectivityMonitor.checkConnectivity() }
+                        Task { await syncCoordinator?.transportManager.checkReachability() }
                     case .background:
                         syncCoordinator?.pushOnBackground()
                     default:
@@ -98,10 +98,13 @@ struct AthleticsPerformanceApp: App {
         }
     }
 
-    /// The main content view, which switches between the app content, an error message, or a loading indicator.
+    /// The main content view, which switches between onboarding, app content, an error message, or a loading indicator.
     @ViewBuilder
     private var contentView: some View {
-        if isSetupComplete {
+        if isSetupComplete && !deviceConfigStore.config.isProvisioned {
+            OnboardingView(deviceConfigStore: deviceConfigStore)
+                .environmentObject(deviceConfigStore)
+        } else if isSetupComplete {
             ContentView()
                 .environmentObject(patientStore)
         } else if !isLoadSuccessful {
@@ -219,7 +222,10 @@ struct AthleticsPerformanceApp: App {
         authManager = auth
 
         let client = NexusSyncClient(deviceConfigStore: deviceConfigStore, authManager: auth)
-        let monitor = ConnectivityMonitor(client: client)
+        let transport = TransportManager(deviceConfigStore: deviceConfigStore)
+
+        // Wire transport manager to sync client for dual-auth
+        Task { await client.setTransportManager(transport) }
 
         let coordinator = SyncCoordinator(
             patientStore: patientStore,
@@ -228,7 +234,7 @@ struct AthleticsPerformanceApp: App {
             syncStateStore: syncStateStore,
             deviceConfigStore: deviceConfigStore,
             client: client,
-            connectivityMonitor: monitor
+            transportManager: transport
         )
 
         syncCoordinator = coordinator
@@ -242,8 +248,8 @@ struct AthleticsPerformanceApp: App {
             coordinator.wireAvailabilityStore(store)
         }
 
-        // Start auto-sync if device has a server URL configured
-        if !deviceConfigStore.config.serverURL.isEmpty {
+        // Start auto-sync if device is provisioned
+        if deviceConfigStore.config.isProvisioned {
             coordinator.startAutoSync()
         }
     }
