@@ -150,7 +150,21 @@ enum EntityMerger {
         for tIdx in patient.therapies.indices {
             guard var therapy = patient.therapies[tIdx] else { continue }
             if let pIdx = therapy.therapyPlans.firstIndex(where: { $0.id == plan.id }) {
-                therapy.therapyPlans[pIdx] = plan
+                // Update top-level fields only — preserve local treatmentSessions and sessionDocs
+                // (those arrive as separate sync entities via mergeTreatmentSession / mergeSessionDoc)
+                var existing = therapy.therapyPlans[pIdx]
+                existing.diagnosisId = plan.diagnosisId
+                existing.therapistId = plan.therapistId
+                existing.title = plan.title
+                existing.treatmentServiceIds = plan.treatmentServiceIds
+                existing.frequency = plan.frequency
+                existing.weekdays = plan.weekdays
+                existing.preferredTimeOfDay = plan.preferredTimeOfDay
+                existing.startDate = plan.startDate
+                existing.numberOfSessions = plan.numberOfSessions
+                existing.addressId = plan.addressId
+                existing.isCompleted = plan.isCompleted
+                therapy.therapyPlans[pIdx] = existing
                 patient.therapies[tIdx] = therapy
                 return true
             }

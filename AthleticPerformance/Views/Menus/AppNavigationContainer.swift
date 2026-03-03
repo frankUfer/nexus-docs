@@ -187,6 +187,10 @@ struct AppNavigationContainer: View {
                 SyncNowView()
             case .settings:
                 SyncSettingsView()
+            case .backup:
+                BackupView()
+            case .restore:
+                RestoreView()
             case .none:
                 ContentUnavailableView(
                     "",

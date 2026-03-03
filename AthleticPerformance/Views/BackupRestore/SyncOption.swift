@@ -4,6 +4,8 @@ enum SyncOption: String, CaseIterable, Identifiable, Hashable {
     case status
     case sync
     case settings
+    case backup
+    case restore
 
     var id: String { rawValue }
 
@@ -15,6 +17,10 @@ enum SyncOption: String, CaseIterable, Identifiable, Hashable {
             return NSLocalizedString("syncNow", comment: "Sync Now")
         case .settings:
             return NSLocalizedString("syncSettings", comment: "Settings")
+        case .backup:
+            return NSLocalizedString("backupTitle", comment: "Create Backup")
+        case .restore:
+            return NSLocalizedString("restoreTitle", comment: "Restore Data")
         }
     }
 
@@ -26,6 +32,10 @@ enum SyncOption: String, CaseIterable, Identifiable, Hashable {
             return "arrow.triangle.2.circlepath"
         case .settings:
             return "gearshape.2"
+        case .backup:
+            return "arrow.up.doc.on.clipboard"
+        case .restore:
+            return "arrow.down.doc"
         }
     }
 }
