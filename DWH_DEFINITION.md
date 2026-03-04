@@ -2198,7 +2198,7 @@ Documents/
 │       ├── invoices/                         ← billing documents
 │       │   ├── {invoiceNumber}.json           ← Invoice struct (header + items)
 │       │   └── {invoiceNumber}.pdf            ← generated invoice PDF
-│       ├── media/                            ← binary files (images, videos, PDFs)
+│       ├── media/                            ← CURRENT media location
 │       │   └── {therapyId}/                   ← grouped by therapy
 │       │       ├── {filename}.jpg             ← diagnosis images
 │       │       ├── {filename}.mp4             ← exercise videos
@@ -2206,7 +2206,9 @@ Documents/
 │       └── therapy_{therapyId}/              ← per-therapy documents
 │           ├── agreement.pdf                  ← current therapy agreement
 │           ├── agreement{YYYY-MM-DD}.pdf      ← archived agreements (dated)
-│           └── discharge_report_{date}.pdf    ← discharge report PDF
+│           ├── discharge_report_{date}.pdf    ← discharge report PDF
+│           └── media/                         ← LEGACY media location
+│               └── {filename}.jpg             ← diagnosis images (old path)
 │
 ├── resources/
 │   ├── parameter/                            ← parameter data (server-synced)
@@ -2236,6 +2238,22 @@ Documents/
 │
 └── availability_{therapistId}.json           ← therapist availability slots
 ```
+
+**Two media storage locations (historical)**: Diagnosis images (JPGs) exist in
+two different folder structures due to a historical change in the app:
+
+| Pattern | Location | Status |
+|---------|----------|--------|
+| Current | `patients/{id}/media/{therapyId}/{file}.jpg` | Active — `PatientStore.addMediaFile()` writes here |
+| Legacy  | `patients/{id}/therapy_{therapyId}/media/{file}.jpg` | Deprecated — existing files remain from earlier app versions |
+
+Both locations contain the same kind of data (diagnosis images). The current
+code reads media via `MediaFile.relativePath` stored in `patient.json`, so
+files at either location display correctly as long as the path matches.
+
+**Sync must handle both**: The attachment metadata collector (§7.1.2 D) must
+scan both `media/{therapyId}/` and `therapy_{therapyId}/media/` to capture
+all diagnosis images, including legacy files that were never moved.
 
 ### 7.1.1 Current data flow — working delta sync
 
@@ -2382,9 +2400,12 @@ are not currently referenced in the push metadata. Fix by:
 1. EntityExtractor includes `MediaFile` metadata entries for ALL binary
    files (diagnosis images, exercise videos, invoice PDFs, contracts,
    agreements, discharge reports)
-2. Push includes these as attachment references
-3. Server responds with `pendingUploads` for files it doesn't have yet
-4. AttachmentUploader uploads only missing files (existing dedup by hash)
+2. Attachment metadata collector must scan **both** media locations:
+   - Current: `patients/{id}/media/{therapyId}/` (active path)
+   - Legacy: `patients/{id}/therapy_{therapyId}/media/` (historical path)
+3. Push includes these as attachment references
+4. Server responds with `pendingUploads` for files it doesn't have yet
+5. AttachmentUploader uploads only missing files (existing dedup by hash)
 
 This extends the working delta sync without replacing it.
 
@@ -2688,8 +2709,10 @@ All changes are in the `AthleticPerformance/Views/Sync/` directory:
 2. **Attachment metadata collector** — scans patient directory for binary files
    (invoice PDFs, contracts, agreements, discharge reports, media files) and
    includes their metadata in the push so the server can request uploads via
-   `pendingUploads`. Currently only `MediaFile` references from entity data
-   trigger uploads; standalone PDFs (contracts, agreements) are not referenced.
+   `pendingUploads`. Must scan **both** media locations due to historical path
+   change: `media/{therapyId}/` (current) and `therapy_{therapyId}/media/`
+   (legacy). Currently only `MediaFile` references from entity data trigger
+   uploads; standalone PDFs (contracts, agreements) are not referenced.
 
 3. **Parent FK injection** — when EntityExtractor produces a flat entity from a
    nested structure, it must include the parent chain IDs in the entity data:
