@@ -27,6 +27,7 @@ with their own git repos.
 	│   ├── Packages/
 	│   └── Sources/
 	├── nexus-core/                     ← separate git repo (Python, server)
+	├── nexus-admin/                    ← separate git repo (PySide6, macOS admin GUI)
 	├── nexus-gate/                     ← separate git repo (RPi gateway)
 	├── clarity/                        ← separate git repo (BI tool, Python)
 	└── clarity-swift/                  ← separate git repo (BI tool, Swift)
@@ -62,13 +63,13 @@ It needs to be analyzed and refactored to align with the Nexus platform.
 
 ### Server-side status (nexus-core, already complete)
 - Sync API: push, pull, upload, download endpoints (HTTPS on port 8443)
+- Provisioning API: generate-code, claim, devices, code-status, device sync history
 - Three-tier conflict resolution
 - JWT authentication (VPN) + X-Device-ID (wired)
 - Staging → warehouse → mart ETL pipeline
 - Dimensional model (dim\_calendar, dim\_device, dim\_entity, dim\_source)
 - Fact tables (fact\_transactions, fact\_events, fact\_attachments, fact\_sync\_log)
 - All Alembic migrations
-- 77 passing tests
 - TLS with self-signed CA (iOS-compliant server cert)
 
 ### iPad app sync status (completed 2026-03-03)
@@ -82,6 +83,7 @@ The app must produce data that matches the sync API contract in SYNC\_PROTOCOL.m
 
 ## Component repositories (separate git repos, ignored by this repo)
 - `nexus-core/`    — Central server: FastAPI sync API, ETL, crawlers, backup (Python)
+- `nexus-admin/`   — macOS admin GUI: PySide6 desktop app for device management and onboarding
 - `nexus-gate/`    — Raspberry Pi VPN gateway: WireGuard, UFW, DNS
 - `clarity/`       — BI tool, Python/PySide6 (standalone, reads from Nexus data marts)
 - `clarity-swift/` — BI tool, native macOS/iPadOS (standalone)
@@ -113,7 +115,7 @@ Patient data is stored as local files per patient directory on the iPad.
 ### TLS setup (completed 2026-03-03)
 - Self-signed CA: `/etc/nexus/tls/ca.crt` + `ca.key` (root:root, 10-year validity)
 - Server cert: `/etc/nexus/tls/server.crt` + `server.key` (root:nexus, 825-day validity)
-  - SAN: IP:10.8.0.10, IP:127.0.0.1, DNS:nexus-server.local
+  - SAN: IP:10.8.0.10, IP:127.0.0.1, IP:192.168.178.13, DNS:nexus-server.local
   - iOS-compliant: basicConstraints=CA:FALSE, extendedKeyUsage=serverAuth
 - iPad trusts the CA via `NexusTLSSessionDelegate` reading `nexus-ca-cert.txt` from
   Documents/resources/tls/ (PEM format, .txt extension required for Xcode bundle inclusion)
@@ -208,3 +210,115 @@ When you need to change something that spans both repos:
   basicConstraints=CA:FALSE (Apple TLS requirements since iOS 13)
 - iCloud Private Relay intercepts HTTP traffic to private IPs — must use HTTPS
 - Swift UUID.uuidString returns UPPERCASE, Python str(uuid4()) returns lowercase
+
+### 2026-03-04: Fix dual-transport auth and TLS for all connection scenarios
+
+**Goal**: Get sync working across all three transport scenarios: VPN via mobile
+data, VPN via WiFi, and USB cable with flight mode.
+
+**Bugs found and fixed**:
+
+1. **Server cert SAN missing LAN IP** (nexus-core server):
+   - Cert had `SAN: IP:10.8.0.10, IP:127.0.0.1, DNS:nexus-server.local`
+   - Bonjour-discovered connections use LAN IP `192.168.178.13`, which wasn't
+     in the SAN → TLS evaluation failed with "Zertifikatsname stimmt nicht überein"
+   - Regenerated cert: added `IP:192.168.178.13` to SAN
+   - Connection test masked this because `SyncSettingsView.testConnection()`
+     creates a fresh `TransportManager` without Bonjour, falling back to the
+     configured VPN URL (`10.8.0.10`) which matched the cert
+
+2. **WireGuard tunnel misclassified as USB** (`TransportManager.swift`):
+   - `handlePathUpdate()` treated `NWInterface.type == .other` as wired ethernet
+   - WireGuard's `utun` tunnel interface reports as `.other` on iOS
+   - This made `currentTransport = .wired` → `isWired = true` → app sent
+     X-Device-ID header instead of JWT Bearer on ALL connections
+   - WiFi worked by accident: TCP went via LAN (`192.168.178.x`, outside VPN
+     subnet) so nexus-core treated it as local and accepted X-Device-ID
+   - Mobile data failed: TCP went via VPN tunnel (`10.8.0.x`, in VPN subnet)
+     so nexus-core expected JWT Bearer → 403 "not authenticated"
+   - Fix: removed `.other` from wired detection, only check `.wiredEthernet`
+
+3. **GuardianAuthClient TLS session** (`GuardianAuthClient.swift`):
+   - Used `URLSession.shared` (no Nexus CA trust) instead of `.nexus`
+   - Would have caused TLS failures for Guardian HTTPS calls over VPN
+   - Changed default session from `.shared` to `.nexus`
+
+**Files changed**:
+- `AthleticPerformance/Views/Sync/Transport/TransportManager.swift` — wired detection
+- `AthleticPerformance/Views/Sync/Auth/GuardianAuthClient.swift` — URLSession default
+- Server: `/etc/nexus/tls/server.crt` — regenerated with LAN IP in SAN
+
+**Verified working**:
+- VPN via mobile data: JWT Bearer auth ✓
+- VPN via WiFi: JWT Bearer auth ✓
+- USB cable + flight mode: X-Device-ID auth ✓
+
+**Key learnings**:
+- WireGuard `utun` interfaces show as `NWInterface.InterfaceType.other` on iOS —
+  do NOT treat `.other` as wired ethernet
+- `NWPathMonitor` reports all active interfaces including VPN tunnels; filtering
+  must be precise to avoid auth method misselection
+- When connection tests create isolated instances (e.g. fresh `TransportManager`
+  without Bonjour), they may succeed while the real code path fails — test with
+  the actual runtime components
+- nexus-core `is_local_interface()` decides auth method by source IP: IPs inside
+  `NEXUS_VPN_SUBNET` (10.8.0.0/24) require JWT, everything else accepts X-Device-ID
+
+### 2026-03-04: nexus-admin desktop app and provisioning API
+
+**Goal**: Build a macOS admin GUI for iPad onboarding and device management,
+plus the server-side API endpoints to support it.
+
+**Part 1 — nexus-core API additions** (`provision_routes.py`):
+- `GET /api/v1/provision/devices` — list all registered devices from `sync_device_state`
+- `GET /api/v1/provision/code-status/{code}` — poll whether a setup code has been claimed
+- `GET /api/v1/provision/devices/{device_id}/syncs` — sync history from `sync_operation`
+  (direction, records sent/accepted, conflicts, errors, duration, timestamp)
+- All endpoints behind `_require_local` guard
+- Added `server_url` config field to `Settings` for provisioning config bundles
+
+**Part 2 — nexus-admin PySide6 desktop app** (new repo at `nexus-admin/`):
+- `main_window.py`: QMainWindow with sidebar ("Devices", "Onboarding") + QStackedWidget
+- `panels/devices.py`: device overview table (Name, Status, Registered) with click-to-expand
+  sync history table (Direction, Sent, Accepted, Conflicts, Errors, Duration, Completed)
+- `panels/onboarding.py`: state machine (IDLE → CODE\_GENERATED → CLAIMED/EXPIRED),
+  auto-generated device names (iPad-001, iPad-002, ...), 6-digit code display with countdown,
+  QThread polling worker (2s interval)
+- `ssh_tunnel.py`: SSH port-forward (`ssh -N -L`) to nexus-core, auto-selects free local port
+- `api_client.py`: synchronous httpx client with SSH tunnel or direct TLS connection
+- Built with PyInstaller, installed to `/Applications/Nexus Admin.app`
+
+**Connection strategies** (two paths to nexus-core):
+1. **iPads** — HTTPS with TLS over VPN (JWT auth) or wired (X-Device-ID auth)
+2. **MacBook admin** — SSH tunnel to server, HTTPS with cert verification skipped
+
+**Server deployment details**:
+- Code deployed to `/opt/nexus/nexus-core/` (both `src/nexus/` and `nexus/` paths)
+- `nexus-sync.service` ExecStart: uvicorn with `--ssl-keyfile` and `--ssl-certfile`
+- `NEXUS_TRUSTED_HOSTS` includes `127.0.0.1` for SSH tunnel connections
+- `NEXUS_SERVER_URL=https://10.8.0.10:8443` in `/etc/nexus/nexus.env`
+
+**Bugs found and fixed**:
+1. **TLS was disabled on server** — `nexus-sync.service` ExecStart had no `--ssl-keyfile`
+   or `--ssl-certfile` flags → uvicorn ran plain HTTP → iPads got "Invalid HTTP request"
+   when connecting via HTTPS. Fixed by adding TLS flags to systemd service.
+2. **SSH tunnel protocol mismatch** — tunnel `local_url` used `http://` but server now
+   speaks HTTPS. Changed to `https://` with `verify=False` (SSH encrypts the channel).
+3. **`nexus-server.local` hostname not resolving** — added SSH config entry mapping
+   to `192.168.178.13`.
+4. **Server dual code paths** — server has code at both `src/nexus/` and `nexus/`;
+   must deploy to both paths until consolidated.
+5. **Device deduplication** — multiple provisioning attempts created duplicate rows;
+   admin app deduplicates by `device_name`, keeping most recent registration.
+
+**Key learnings**:
+- Server MUST run with TLS for iPad connections; SSH tunnel for admin wraps HTTPS
+- Device naming convention: iPad-NNN (auto-incremented by querying existing devices)
+- `device_name` is the physical device identifier; `device_id` changes on re-provisioning
+- PyInstaller apps launched from Finder don't receive CLI args — defaults must work
+- Dark mode: use `palette(mid)` for borders, avoid hardcoded background/text colors
+
+**Verified working**:
+- iPad sync via VPN (WiFi + mobile data): HTTPS + JWT ✓
+- iPad sync via USB cable (flight mode): HTTPS + X-Device-ID ✓
+- Nexus Admin via SSH tunnel: device list, sync history, onboarding flow ✓

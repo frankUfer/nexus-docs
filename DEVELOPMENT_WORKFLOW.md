@@ -244,7 +244,7 @@ cd ~/Projects/nexus/nexus-gate
 ### Server Provisioning (First Time)
 
 ```bash
-cd ~/Projects/nexus/nexus-core
+cd /Users/frank/softwareDevelopment/projects/nexus/nexus-core
 ./deploy/setup-server.sh nexus-server.local
 ```
 

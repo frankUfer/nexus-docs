@@ -4,6 +4,7 @@ nexus-gate/
 nexus-field/
 clarity/
 clarity-swift/
+nexus-admin/
 
 # OS files
 .DS_Store

@@ -93,10 +93,7 @@ final class TransportManager: ObservableObject {
     // MARK: - Path Monitoring
 
     private func handlePathUpdate(_ path: NWPath) {
-        let hasWired = path.availableInterfaces.contains { iface in
-            // USB Ethernet shows as .wiredEthernet or sometimes .other
-            iface.type == .wiredEthernet || iface.type == .other
-        }
+        let hasWired = path.availableInterfaces.contains { $0.type == .wiredEthernet }
         let hasWiFi = path.availableInterfaces.contains { $0.type == .wifi }
 
         if hasWired {
