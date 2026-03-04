@@ -2411,7 +2411,7 @@ This extends the working delta sync without replacing it.
 | › Invoice line items           | Embedded          | Lost in JSONB      | No fact_invoice_item table                  |
 | **invoices/*.pdf**             | **NOT uploaded**  | **Not in DWH**     | **Invoice PDFs never sent**                 |
 | **changes/*.json**             | **NOT synced**    | **Not in DWH**     | **No field-level audit trail on server**    |
-| **media/**/*.jpg/mp4/pdf**     | **NOT uploaded**  | **Not in DWH**     | **Attachment pipeline stubbed**             |
+| **media/**/*.jpg/mp4/pdf**     | **NOT uploaded**  | **Not in DWH**     | **Not referenced in push metadata**        |
 | **contract*.pdf**              | **NOT uploaded**  | **Not in DWH**     | **Treatment contract PDFs never sent**      |
 | **therapy_*/agreement*.pdf**   | **NOT uploaded**  | **Not in DWH**     | **Therapy agreement PDFs never sent**       |
 | **therapy_*/discharge_*.pdf**  | **NOT uploaded**  | **Not in DWH**     | **Discharge report PDFs never sent**        |
@@ -2431,24 +2431,26 @@ This extends the working delta sync without replacing it.
 
 For the DWH to be THE authoritative data store with no missing data:
 
-#### R1: All source files must arrive at the server
+#### R1: All source data must arrive at the server
 
-With file-based sync (§7.1.2), this becomes straightforward — transfer the
-complete folder structure:
+By extending the existing delta sync (§7.1.2), each data category needs a
+specific iPad-side change to be included in the sync flow:
 
-| Folder / file                        | Current status          | Required action                     |
-|--------------------------------------|-------------------------|-------------------------------------|
-| `patients/*/patient.json`            | Partial (via extractor) | Transfer raw file instead           |
-| `patients/*/changes/*.json`          | NOT synced              | Transfer all change log files       |
-| `patients/*/invoices/*.json`         | Partial (via extractor) | Transfer raw file instead           |
-| `patients/*/invoices/*.pdf`          | NOT uploaded            | Transfer binary file                |
-| `patients/*/media/**/*.*`            | NOT uploaded            | Transfer all media files            |
-| `patients/*/contract*.pdf`           | NOT uploaded            | Transfer binary file                |
-| `patients/*/therapy_*/agreement*.pdf`| NOT uploaded            | Transfer binary file                |
-| `patients/*/therapy_*/discharge_*`   | NOT uploaded            | Transfer binary file                |
-| `resources/parameter/*.json`         | Yes (separate flow)     | Unify into same file transfer       |
-| `resources/templates/*.txt`          | Not tracked             | Transfer for completeness           |
-| `availability_*.json`                | Yes (separate flow)     | Unify into same file transfer       |
+| Data source                          | Current status          | Required iPad app change                              |
+|--------------------------------------|-------------------------|-------------------------------------------------------|
+| `patient.json` (demographics)        | Synced (as JSONB blob)  | Add fine-grained entity types to EntityExtractor (§7.1.2 A) |
+| `patient.json` (nested structures)   | Partial (coarse types)  | Extract therapy, diagnosis, finding, etc. separately  |
+| `patient.json` (clinical entries)    | Lost in JSONB           | Extract as `clinical_observation` entities            |
+| `patient.json` (applied treatments)  | Lost in JSONB           | Extract as `applied_treatment` entities               |
+| `changes/*.json`                     | NOT synced              | New sync phase: push change log entities (§7.1.2 B)  |
+| `invoices/*.json`                    | Partial (flat entity)   | Extract invoice items as separate entities            |
+| `invoices/*.pdf`                     | NOT uploaded            | Add to attachment metadata for AttachmentUploader     |
+| `media/**/*.*`                       | NOT uploaded            | Add to attachment metadata for AttachmentUploader     |
+| `contract*.pdf`                      | NOT uploaded            | Add to attachment metadata for AttachmentUploader     |
+| `therapy_*/agreement*.pdf`           | NOT uploaded            | Add to attachment metadata for AttachmentUploader     |
+| `therapy_*/discharge_report*.pdf`    | NOT uploaded            | Add to attachment metadata for AttachmentUploader     |
+| `resources/parameter/*.json`         | Yes (separate flow)     | Already working — no change needed                    |
+| `availability_*.json`                | Yes (separate flow)     | Already working — no change needed                    |
 
 #### R2: All data must have typed warehouse tables (no JSONB catch-alls)
 
@@ -2512,55 +2514,72 @@ that should be **replaced** by the typed tables above, not augmented.
 
 #### R5: Change log as first-class data
 
-With file-based sync, change log files arrive naturally as part of the
-`patients/{patientId}/changes/` folder — no special handling needed on the
-iPad side. The server processes them like any other file:
+Change logs must be included in the delta sync as a new entity type (§7.1.2 B).
+The iPad already writes `changes/{timestamp}.json` files via `PatientStore`.
+The required changes:
+
+1. **iPad**: EntityExtractor reads `changes/*.json` files and produces entities
+   with type `change_log`, one entity per `ChangeEntry` (not per file)
+2. **iPad**: ChangeDetector includes new change log entities in delta comparison
+   (change logs are append-only, so all new entries since last sync are "created")
+3. **Server**: Accepts `change_log` entity type in push, routes to `fact_change_log`
 
 ```
-iPad                          Server                        Warehouse
-─────                         ──────                        ─────────
-patients/{id}/changes/ ──→ file transfer ──→ parse JSON ──→ fact_change_log
-  20260304-093010.json       (delta by       (one row        (per field,
-  20260304-094520.json        file hash)      per entry)      with entity
-  ...                                                         context)
+PatientStore writes change ──→ EntityExtractor reads changes/*.json
+                                  │
+                                  ▼
+                              Produces QueuedChange per ChangeEntry
+                                  │  type: "change_log"
+                                  │  operation: "create"
+                                  │  data: { path, oldValue, newValue, therapistId, timestamp }
+                                  │
+                                  ▼
+                              OutboundQueue ──→ push ──→ server ──→ fact_change_log
 ```
 
-Each change log file becomes multiple rows in `fact_change_log` (one per
-`ChangeEntry`). The path field is parsed to derive the affected entity type
-and entity ID, enabling joins back to the corresponding fact and dimension
-tables.
+Each `ChangeEntry` becomes one row in `fact_change_log`. The `path` field
+(JSON Pointer, e.g. `/therapies/0/diagnoses/1/title`) is parsed server-side
+to derive the affected entity type and entity ID, enabling joins back to
+the corresponding fact and dimension tables.
 
-### 7.4 Server-side parsing (replaces EntityExtractor)
+### 7.4 Server-side ETL decomposition
 
-With file-based sync (§7.1.2), the EntityExtractor on the iPad becomes
-unnecessary. Instead, the **server** reads the raw files and decomposes them
-into warehouse-ready structures. This moves complexity from the iPad to the
-server, where it belongs — the server has full context, can compare against
-previous versions, and can produce properly structured records for every
-warehouse target table.
+When the extended delta sync (§7.1.2) delivers fine-grained entities to the
+server, the **ETL pipeline** decomposes them into typed warehouse tables.
+The EntityExtractor on the iPad produces the entities; the server's ETL
+maps each entity type to its target dimension or fact table(s).
 
-#### 7.4.1 File-to-table mapping
+#### 7.4.1 Entity-type-to-table mapping
 
-The server's ingest engine maps each file type to the warehouse tables it feeds:
+The server's ETL maps each sync entity type to its warehouse target tables:
 
-| File                                | Parsing                           | Warehouse targets                                  |
-|-------------------------------------|-----------------------------------|----------------------------------------------------|
-| `patient.json`                      | Read PatientFile, walk full tree  | dim_patient, fact_therapy, fact_diagnosis, fact_finding, fact_therapy_plan, fact_session, fact_session_doc, fact_clinical_observation, fact_exercise, fact_pre_treatment, fact_discharge |
-| `changes/{ts}.json`                 | Read ChangeLog, one row per entry | fact_change_log                                    |
-| `invoices/{num}.json`               | Read Invoice + items              | fact_invoice, fact_invoice_item                     |
-| `invoices/{num}.pdf`                | Binary, metadata only             | fact_attachment (type=invoice_pdf)                  |
-| `media/{therapyId}/{file}`          | Binary, metadata only             | fact_attachment (type=media)                        |
-| `contract*.pdf`                     | Binary, metadata only             | fact_attachment (type=contract)                     |
-| `therapy_{id}/agreement*.pdf`       | Binary, metadata only             | fact_attachment (type=agreement)                    |
-| `therapy_{id}/discharge_report*.pdf`| Binary, metadata only             | fact_attachment (type=discharge_report)             |
-| `resources/parameter/*.json`        | Read each parameter file          | dim_parameter, dim_therapist, dim_practice, dim_service |
-| `availability_{id}.json`            | Read AvailabilitySlot array       | fact_availability                                   |
+| Sync entity type          | Source on iPad                    | Warehouse targets                                  |
+|---------------------------|-----------------------------------|----------------------------------------------------|
+| `patient` (master_data)   | patient.json → demographics       | dim_patient (SCD2)                                 |
+| `therapy`                 | patient.json → therapies[]        | fact_therapy                                       |
+| `diagnosis`               | patient.json → diagnoses[]        | fact_diagnosis, dim_doctor (from source)            |
+| `diagnosis_treatment`     | patient.json → treatments[]       | fact_diagnosis (detail rows)                       |
+| `finding`                 | patient.json → findings[]         | fact_finding                                       |
+| `therapy_plan`            | patient.json → therapyPlans[]     | fact_therapy_plan                                  |
+| `treatment_session`       | patient.json → treatmentSessions[]| fact_session                                       |
+| `session_doc`             | patient.json → sessionDocs[]      | fact_session_doc                                   |
+| `clinical_observation`    | Finding + SessionDoc status arrays| fact_clinical_observation                          |
+| `applied_treatment`       | sessionDoc → appliedTreatments[]  | fact_applied_treatment                             |
+| `pre_treatment`           | patient.json → preTreatment       | fact_pre_treatment                                 |
+| `exercise`                | patient.json → exercises[]        | fact_exercise                                      |
+| `discharge_report`        | patient.json → dischargeReport    | fact_discharge                                     |
+| `invoice`                 | invoices/{num}.json → header      | fact_invoice                                       |
+| `invoice_item`            | invoices/{num}.json → items[]     | fact_invoice_item                                  |
+| `change_log`              | changes/{ts}.json → entries[]     | fact_change_log                                    |
+| `availability`            | availability_{id}.json → slots[]  | fact_availability                                  |
+| Parameter types           | resources/parameter/*.json        | dim_parameter, dim_therapist, dim_practice, dim_service |
+| Attachments (binary)      | media/*, invoices/*.pdf, contract*.pdf, agreement*.pdf, discharge*.pdf | fact_attachment |
 
-#### 7.4.2 Patient.json decomposition (server-side)
+#### 7.4.2 Patient.json decomposition (iPad-side EntityExtractor)
 
-The server reads the complete patient.json and walks the nested tree,
-extracting rows for each warehouse table. Parent references are preserved
-because the server reads the full structure:
+The extended EntityExtractor walks the nested patient.json tree and produces
+flat entities with parent FK references preserved (§7.1.2 C). Each entity
+carries the IDs of all its ancestors in the hierarchy:
 
 ```
 patient.json (PatientFile)
@@ -2618,40 +2637,72 @@ patient.json (PatientFile)
           └── invoices[] ──────────────────→ (see invoice JSON files below)
 ```
 
-#### 7.4.3 Change detection by the server
+#### 7.4.3 Server-side ETL processing
 
-When the server receives files, it compares against the last known state:
+When the server receives pushed entities via the delta sync, it processes
+them through the ETL pipeline into typed warehouse tables:
 
-**For JSON files** (patient.json, invoices, parameters):
-1. Compare file hash (SHA-256) against `sync_file_state.file_hash`
-2. If hash differs → parse new JSON, compare against stored version
-3. Server runs its own diff (equivalent to iPad's ChangeDetector) to determine
-   which nested entities changed
-4. Only changed entities are re-processed through ETL
+**For data entities** (patient, therapy, diagnosis, session, etc.):
+1. Entity arrives in `sync_inbound` staging table (type + JSONB data)
+2. ETL reads entity type and routes to the correct warehouse table
+3. For dimensions (dim_patient, dim_doctor): apply SCD Type 2 (expire old
+   version, insert new version with `valid_from = now()`)
+4. For facts: insert or update based on entity ID
 
-**For binary files** (PDF, JPG, MP4):
-1. Compare file hash against `sync_file_state.file_hash`
-2. If hash differs or file is new → store file, update `fact_attachment`
-3. Binary files are immutable in practice (a new agreement creates a new file
+**For binary attachments** (PDF, JPG, MP4):
+1. Server responds to push with `pendingUploads` for files it doesn't have
+2. iPad's AttachmentUploader POSTs each file via multipart upload
+3. Server stores file on disk, inserts/updates `fact_attachment` metadata
+4. Binary files are immutable in practice (a new agreement creates a new file
    with a dated name, it doesn't overwrite the existing one)
 
-**For change log files** (changes/*.json):
-1. New files (timestamp > last sync) → parse and insert into `fact_change_log`
-2. Change logs are append-only — old files never change
-3. After successful processing, mark as synced in `sync_file_state`
+**For change log entities**:
+1. Arrive as `change_log` entity type in push
+2. Each entity = one `ChangeEntry` → one row in `fact_change_log`
+3. Change logs are append-only — no updates, no conflicts
 
-#### 7.4.4 Advantages of server-side parsing
+#### 7.4.4 Summary of iPad app changes required
 
-| Aspect                    | Why it matters                                               |
-|---------------------------|--------------------------------------------------------------|
-| Complete data             | Server reads the full patient.json tree — nothing lost       |
-| Parent references         | Server walks the tree, so it knows every parent-child link   |
-| No iPad code changes      | iPad just sends files — no EntityExtractor rewrite needed    |
-| Server-side diff          | Server compares against its own stored state — more reliable |
-| Historical completeness   | All change logs, all PDFs, all media — everything arrives    |
-| Parameter handling        | Same pipeline for parameter files (server wins on conflict)  |
-| Testability               | Server parsing can be unit-tested with sample files          |
-| Future-proof              | New fields in patient.json are automatically captured        |
+All changes are in the `AthleticPerformance/Views/Sync/` directory:
+
+| Component              | File                           | Change                                                      |
+|------------------------|--------------------------------|-------------------------------------------------------------|
+| **EntityExtractor**    | `Serialization/EntityExtractor.swift` | Add 14 new entity types (§7.1.2 A), preserve parent FKs (§7.1.2 C) |
+| **ChangeDetector**     | `Serialization/ChangeDetector.swift`  | Detect changes for new entity types (automatic if extractor outputs them) |
+| **SyncCoordinator**    | `Engine/SyncCoordinator.swift`        | Add change log sync phase: read `changes/*.json`, produce `change_log` entities |
+| **OutboundQueue**      | `Queue/OutboundQueue.swift`           | No change — already handles any entity type                 |
+| **NexusSyncClient**    | `Client/NexusSyncClient.swift`        | No change — push payload is entity-type-agnostic            |
+| **AttachmentUploader** | `Attachments/AttachmentUploader.swift` | No change — already uploads any file the server requests    |
+| **EntityMerger**       | `Serialization/EntityMerger.swift`    | Add merge logic for new entity types (pull direction)       |
+| **SyncModels**         | `Models/SyncModels.swift`             | Add new `SyncEntityType` cases for the 14 new types         |
+
+**New code needed** (iPad side):
+
+1. **Change log reader** — reads `Documents/patients/{id}/changes/*.json`,
+   produces `QueuedChange` entries with type `change_log`. Must track which
+   files were already synced (by filename/timestamp) to avoid re-sending.
+
+2. **Attachment metadata collector** — scans patient directory for binary files
+   (invoice PDFs, contracts, agreements, discharge reports, media files) and
+   includes their metadata in the push so the server can request uploads via
+   `pendingUploads`. Currently only `MediaFile` references from entity data
+   trigger uploads; standalone PDFs (contracts, agreements) are not referenced.
+
+3. **Parent FK injection** — when EntityExtractor produces a flat entity from a
+   nested structure, it must include the parent chain IDs in the entity data:
+   ```
+   // Example: extracting a TreatmentSessions entity
+   ExtractedEntity(
+       id: session.id,
+       type: .treatmentSession,
+       data: [
+           "patientId": patient.id,       // ← parent FK
+           "therapyId": therapy.id,        // ← parent FK
+           "therapyPlanId": plan.id,       // ← parent FK
+           ... session fields ...
+       ]
+   )
+   ```
 
 ---
 
