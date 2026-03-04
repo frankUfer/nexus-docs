@@ -724,7 +724,7 @@
 
 "documentationMissing" = "Bitte minestens 10 Zeichen unter Anmerkungen eingeben, um speichern zu können.";
 "invalidNotesTitle" = "Unzureichende Dokumentation";
-"syncSelectOption" = "Bitte Backup oder Restore auswählen";
+"syncSelectOption" = "Bitte eine Option auswählen";
 
 "errorDocumentFolderNotFound" = "Dokumentenverzeichnis konnte nicht gefunden werden";
 "errorTransferFolderCreation" = "Übertragungsordner konnte nicht erstellt werden";
@@ -762,13 +762,12 @@
 "syncRestore" = "Wiederherstellung";
 
 // Sync
-"syncStatus" = "Status";
-"syncNow" = "Jetzt synchronisieren";
-"syncSettings" = "Einstellungen";
-"syncConnectionStatus" = "Verbindung";
+"syncSynchronisation" = "Synchronisation";
+"syncDeviceStatus" = "Gerätestatus";
+"syncDevice" = "Gerät";
 "syncServer" = "Server";
-"syncNotConfigured" = "Nicht konfiguriert";
-"syncDeviceId" = "Geräte-ID";
+"syncTier" = "Bereitstellung";
+"syncProvisioned" = "Provisioniert";
 "syncCurrentStatus" = "Status";
 "syncLastSync" = "Letzte Synchronisation";
 "syncLastSyncTime" = "Letzte Sync";
@@ -778,31 +777,12 @@
 "syncPendingChanges" = "Ausstehende Änderungen";
 "syncQueuedChanges" = "Wartende Änderungen";
 "syncRecentConflicts" = "Letzte Konflikte";
-"syncLastResult" = "Letztes Ergebnis";
-"syncStatusTitle" = "Sync-Status";
 "syncIdle" = "Bereit";
 "syncPushing" = "Sende...";
 "syncPulling" = "Empfange...";
-"syncReady" = "Bereit zur Synchronisation";
-"syncPushingData" = "Sende lokale Änderungen...";
-"syncPullingData" = "Empfange Server-Änderungen...";
-"syncPendingCount" = "%d ausstehende Änderungen";
 "syncStartSync" = "Synchronisation starten";
-"syncNowTitle" = "Jetzt synchronisieren";
-"syncServerConfig" = "Server-Konfiguration";
-"syncServerURL" = "Server-URL";
-"syncDeviceName" = "Gerätename";
-"syncDeviceInfo" = "Geräte-Info";
-"syncRegistered" = "Registriert";
 "syncAuthentication" = "Authentifizierung";
-"syncGuardianURL" = "Guardian-URL";
 "syncAuthStatus" = "Status";
-"syncTokenExpires" = "Token läuft ab";
-"syncRateLimited" = "Zugriff begrenzt — erneut versuchen nach";
-"syncDevicePassword" = "Geräte-Passwort";
-"syncSavePassword" = "Passwort speichern";
-"syncClearCredentials" = "Zugangsdaten löschen";
-"syncAuthenticate" = "Authentifizieren";
 "syncStatusUnconfigured" = "Nicht konfiguriert";
 "syncStatusUnauthenticated" = "Nicht authentifiziert";
 "syncStatusAuthenticating" = "Authentifizierung...";
@@ -810,5 +790,8 @@
 "syncStatusRateLimited" = "Zugriff begrenzt";
 "syncTestConnection" = "Verbindungstest";
 "syncTestButton" = "Verbindung testen";
-"syncSaveSettings" = "Einstellungen speichern";
-"syncSettingsTitle" = "Sync-Einstellungen";
+"syncResetProvisioning" = "Provisionierung zurücksetzen";
+"syncResetConfirmTitle" = "Provisionierung zurücksetzen?";
+"syncResetConfirmMessage" = "Die Gerätekonfiguration wird gelöscht. Das Gerät muss erneut per Kabel eingerichtet werden.";
+"syncResetConfirmButton" = "Zurücksetzen";
+"syncResetFooter" = "Löscht die Gerätekonfiguration für eine erneute Einrichtung per Kabel.";

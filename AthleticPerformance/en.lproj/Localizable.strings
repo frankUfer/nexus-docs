@@ -723,7 +723,7 @@
 
 "documentationMissing" = "Please enter at least 10 characters in the notes field before saving.";
 "invalidNotesTitle" = "Invalid documentation";
-"syncSelectOption" = "Please select Backup or Restore";
+"syncSelectOption" = "Please select an option";
 
 
 "errorDocumentFolderNotFound" = "Could not find document directory";
@@ -762,13 +762,12 @@
 "syncRestore" = "Restore";
 
 // Sync
-"syncStatus" = "Status";
-"syncNow" = "Sync Now";
-"syncSettings" = "Settings";
-"syncConnectionStatus" = "Connection";
+"syncSynchronisation" = "Synchronization";
+"syncDeviceStatus" = "Device Status";
+"syncDevice" = "Device";
 "syncServer" = "Server";
-"syncNotConfigured" = "Not configured";
-"syncDeviceId" = "Device ID";
+"syncTier" = "Tier";
+"syncProvisioned" = "Provisioned";
 "syncCurrentStatus" = "Status";
 "syncLastSync" = "Last Sync";
 "syncLastSyncTime" = "Last sync";
@@ -778,31 +777,12 @@
 "syncPendingChanges" = "Pending Changes";
 "syncQueuedChanges" = "Queued changes";
 "syncRecentConflicts" = "Recent Conflicts";
-"syncLastResult" = "Last Result";
-"syncStatusTitle" = "Sync Status";
 "syncIdle" = "Idle";
 "syncPushing" = "Pushing...";
 "syncPulling" = "Pulling...";
-"syncReady" = "Ready to sync";
-"syncPushingData" = "Pushing local changes...";
-"syncPullingData" = "Pulling server changes...";
-"syncPendingCount" = "%d pending changes";
 "syncStartSync" = "Start Sync";
-"syncNowTitle" = "Sync Now";
-"syncServerConfig" = "Server Configuration";
-"syncServerURL" = "Server URL";
-"syncDeviceName" = "Device Name";
-"syncDeviceInfo" = "Device Info";
-"syncRegistered" = "Registered";
 "syncAuthentication" = "Authentication";
-"syncGuardianURL" = "Guardian URL";
 "syncAuthStatus" = "Status";
-"syncTokenExpires" = "Token Expires";
-"syncRateLimited" = "Rate limited — retry after";
-"syncDevicePassword" = "Device Password";
-"syncSavePassword" = "Save Password";
-"syncClearCredentials" = "Clear Credentials";
-"syncAuthenticate" = "Authenticate";
 "syncStatusUnconfigured" = "Not configured";
 "syncStatusUnauthenticated" = "Not authenticated";
 "syncStatusAuthenticating" = "Authenticating...";
@@ -810,5 +790,8 @@
 "syncStatusRateLimited" = "Rate limited";
 "syncTestConnection" = "Connection Test";
 "syncTestButton" = "Test Connection";
-"syncSaveSettings" = "Save Settings";
-"syncSettingsTitle" = "Sync Settings";
+"syncResetProvisioning" = "Reset Provisioning";
+"syncResetConfirmTitle" = "Reset Provisioning?";
+"syncResetConfirmMessage" = "The device configuration will be cleared. The device must be re-provisioned via cable.";
+"syncResetConfirmButton" = "Reset";
+"syncResetFooter" = "Clears device configuration so you can re-run onboarding via cable.";

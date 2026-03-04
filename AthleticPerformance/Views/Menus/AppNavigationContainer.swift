@@ -183,10 +183,6 @@ struct AppNavigationContainer: View {
             switch selectedSyncOption {
             case .status:
                 SyncStatusView()
-            case .sync:
-                SyncNowView()
-            case .settings:
-                SyncSettingsView()
             case .backup:
                 BackupView()
             case .restore:
