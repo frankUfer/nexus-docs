@@ -2234,153 +2234,156 @@ Documents/
 └── availability_{therapistId}.json           ← therapist availability slots
 ```
 
-### 7.1.1 Current data flow (broken)
+### 7.1.1 Current data flow — working delta sync
 
-The current sync pipeline uses `EntityExtractor` to flatten patient.json into
-coarse entity types. This approach loses data at every step:
+The iPad app already implements a **production-grade delta sync** system.
+It does NOT send full patient.json on every sync — it detects which entities
+changed and sends only those.
 
-```
-iPad App                          Server (nexus-core)
-─────────                         ───────────────────
-patient.json ──┐
-               ├── EntityExtractor ──→ SyncPushChange ──→ sync_inbound
-               │   (flattens, loses     (6 entity        (raw staging)
-               │    parent links,        types only)          │
-               │    discards nested                           ▼
-               │    detail)                              sync_entity
-               │                                         (current state only,
-               │                                          overwrites previous)
-               │                                              │
-               │                                         ┌────┴────┐
-               │                                         ▼         ▼
-               │                                    dim_entity   fact_transaction
-               │                                    (SCD2,       (catch-all,
-               │                                     master      JSONB data)
-               │                                     only)
-               │
-availability ──┘
-                                  sync_conflict (conflict audit)
-                                  sync_operation (push/pull stats)
-                                  sync_attachment (metadata only — no files)
-
-NOT SYNCED:                       NOT IN DWH:
-  changes/*.json                    parameter dimensions
-  invoices/*.json + *.pdf           typed fact tables
-  media/**/*.jpg/mp4                change log
-  contract*.pdf                     invoice line items
-  agreement*.pdf                    clinical observations
-  discharge_report*.pdf             applied treatments
-  resources/parameter/*.json        attachment files
-```
-
-### 7.1.2 Proposed data flow: file-based sync
-
-Instead of the lossy EntityExtractor approach, the iPad should **transfer its
-folder structure directly** to the server. The server receives the raw files,
-compares them against the state from the last sync, and processes only what
-has changed or been added.
-
-**Principle**: Copy the `patients/` folder, the `resources/` folder, and the
-`availability_*.json` files. The server reads all files in these folders,
-compares timestamps and content against the last known state, and ingests
-everything that is newer.
+**How the existing delta sync works**:
 
 ```
-iPad App                          Server (nexus-core)
-─────────                         ───────────────────
-
-patients/  ──────────────────────→ /var/nexus/devices/{deviceId}/patients/
-  {patientId}/                        (mirror of iPad folder per device)
-    patient.json                      │
-    changes/*.json                    ├── Ingest engine reads ALL files
-    invoices/*.json + *.pdf           │   compares against last sync state
-    media/**/*.*                      │   processes only new/changed files
-    contract*.pdf                     │
-    therapy_*/agreement*.pdf          │
-    therapy_*/discharge_report*.pdf   │
-                                      ▼
-resources/ ──────────────────────→ /var/nexus/devices/{deviceId}/resources/
-  parameter/*.json                    (parameter files — server wins on conflict)
-                                      │
-availability_*.json ─────────────→    │
-                                      ▼
-                                 STAGING (raw ingest)
-                                   staging.sync_file_state   ← file metadata (path, hash, mtime)
-                                   staging.sync_inbound      ← parsed JSON content
-                                   staging.sync_attachment    ← binary file metadata
-                                      │
-                                      ▼
-                                 WAREHOUSE (typed tables)
-                                   dim_patient, dim_therapist, dim_practice, ...
-                                   fact_therapy, fact_session, fact_invoice, ...
-                                   fact_change_log, fact_clinical_observation, ...
-                                   fact_attachment (with actual files on disk)
+User edits patient in UI
+    │
+    ▼
+PatientStore.updatePatientAsync()
+    │
+    ├── Save to Documents/patients/{id}/patient.json
+    ├── Compute field-level diff → write to changes/{timestamp}.json
+    └── Fire onPatientChanged(new, old) callback
+            │
+            ▼
+SyncCoordinator.handlePatientChanged()
+    │
+    ▼
+ChangeDetector.detectChanges(old, new, versionTracker)
+    │  • EntityExtractor.extractAll(old) → flat entities
+    │  • EntityExtractor.extractAll(new) → flat entities
+    │  • Compare each entity by ID using JSON byte-comparison
+    │  • Return ONLY changed entities as [QueuedChange]
+    │
+    ▼
+OutboundQueue.enqueueAll(changes)         ← persisted to outbound_queue.json
+    │                                        (latest change per entity wins)
+    ▼
+Auto-sync timer fires (when server reachable + queue non-empty)
+    │
+    ▼
+client.push(SyncPushRequest)              ← sends ONLY queued deltas
+    │  changes: [SyncPushChange]             each with operation "create"/"update"
+    │  attachments: []                       and last known serverVersion
+    │
+    ▼
+Server response: SyncPushResponse
+    │  accepted: [entityId, serverVersion]
+    │  conflicts: [entityId, resolution, serverData]
+    │  pendingUploads: [entityId, uploadUrl, filename]
+    │
+    ├── EntityVersionTracker.updateVersion()  ← track acceptance
+    ├── OutboundQueue.markSynced(entityIds)   ← remove from queue
+    └── AttachmentUploader.uploadPending()    ← upload binary files
+                                               via separate POST per file
 ```
 
-**How the server detects changes**:
+**What works well**:
 
-| Step | What happens                                                    |
-|------|-----------------------------------------------------------------|
-| 1    | iPad sends list of files with paths, sizes, and modification timestamps |
-| 2    | Server compares against `sync_file_state` table (last known state per device) |
-| 3    | Files where `mtime > last_sync_mtime` OR `size != last_size` are flagged as changed |
-| 4    | New files (path not in `sync_file_state`) are flagged as added   |
-| 5    | Only changed/added files are transferred (delta sync)           |
-| 6    | Server parses JSON files, stores binaries, updates `sync_file_state` |
-| 7    | ETL reads parsed data into warehouse tables                     |
+| Component            | Status | Detail                                            |
+|----------------------|--------|---------------------------------------------------|
+| Change detection     | Working | JSON byte-comparison of old vs new entities      |
+| Delta queue          | Working | Persistent, deduplicates per entity ID           |
+| Version tracking     | Working | create vs update, server version per entity      |
+| Push (deltas only)   | Working | Only queued changes sent, not full patient        |
+| Pull + merge         | Working | Server changes merged back into nested patient.json |
+| Attachment upload    | Working | Separate POST per file after push acceptance     |
+| Attachment download  | Working | Downloaded during pull phase                     |
+| Auth (dual transport)| Working | JWT over VPN, X-Device-ID over USB               |
+| Auto sync            | Working | Timer-based pull (5 min), queue-triggered push   |
+| Conflict resolution  | Working | Three-tier rules applied per entity              |
 
-**New staging table: sync_file_state**
+**What the existing sync does NOT cover** (gaps for DWH completeness):
 
-| Column        | Type        | Nullable | Description                              |
-|---------------|-------------|----------|------------------------------------------|
-| id            | BIGSERIAL   | no       | PK                                       |
-| device_id     | UUID        | no       | FK → sync_device_state                   |
-| file_path     | TEXT        | no       | Relative path from Documents/ root       |
-| file_type     | TEXT        | no       | "json", "pdf", "jpg", "mp4", etc.        |
-| file_size     | BIGINT      | no       | Size in bytes                            |
-| file_hash     | TEXT        | no       | SHA-256 hash for content comparison      |
-| last_modified | TIMESTAMPTZ | no       | File modification timestamp from iPad    |
-| synced_at     | TIMESTAMPTZ | no       | When this version was received           |
-| content_type  | TEXT        | no       | "patient", "invoice", "change_log", "parameter", "media", "agreement", "contract", "discharge", "availability" |
+```
+NOT included in entity extraction:              NOT included in sync flow at all:
+  • Clinical status entries (buried in JSONB)     • changes/*.json (field-level audit)
+  • AppliedTreatments (buried in session doc)     • invoices/*.json (separate file storage)
+  • DiagnosisTreatments (buried in diagnosis)     • invoices/*.pdf (binary)
+  • Invoice line items (buried in invoice)        • contract*.pdf (binary)
+  • DiagnosisSource (buried in diagnosis)         • therapy_*/agreement*.pdf (binary)
+                                                  • therapy_*/discharge_report*.pdf (binary)
+Entity types too coarse:
+  • Therapy, TherapyPlan, TreatmentSessions,    Parameter sync is separate:
+    SessionDoc all map to "session"               • resources/parameter/*.json pushed/pulled
+  • Diagnosis, Finding, Exercise all map to        via entity types (treatmentType, icdCode,
+    "assessment"                                    referenceData, systemConfig)
+```
 
-**Unique constraint**: `(device_id, file_path)` — one entry per file per device.
+### 7.1.2 Proposed improvement: extend existing delta sync
 
-**Advantages over EntityExtractor approach**:
+The existing delta sync system is solid. Rather than replacing it with a
+file-based approach, the better strategy is to **extend it**:
 
-| Aspect                  | EntityExtractor (current)          | File-based sync (proposed)         |
-|-------------------------|------------------------------------|------------------------------------|
-| Data completeness       | Partial — loses nested detail      | Complete — all files transferred   |
-| Parent-child links      | Lost during flattening             | Preserved in JSON structure        |
-| Binary files            | Stubbed (never sent)               | All files included                 |
-| Change detection        | iPad-side (fragile)                | Server-side (reliable)             |
-| Change logs             | Not synced                         | Synced as files                    |
-| Invoice JSON + PDF      | Only JSON, no line item detail     | Both JSON and PDF                  |
-| Parameter files         | Separate flow                      | Same flow, unified                 |
-| iPad code complexity    | High (EntityExtractor, ChangeDetector, OutboundQueue) | Low (file listing + transfer) |
-| Server code complexity  | Low (receives pre-flattened)       | Higher (must parse all structures) |
-| Conflict resolution     | Entity-level                       | File-level (same rules apply)      |
-| Bandwidth               | Only changed entities              | Only changed files (delta by hash) |
+**A) Add missing entity types to EntityExtractor** (iPad-side change):
 
-**Conflict resolution in file-based sync**:
+| New entity type         | Source                     | Currently mapped as  |
+|-------------------------|----------------------------|----------------------|
+| therapy                 | Therapy (flat)             | "session" (shared)   |
+| therapy_plan            | TherapyPlan (flat)         | "session" (shared)   |
+| treatment_session       | TreatmentSessions          | "session" (shared)   |
+| session_doc             | TherapySessionDocumentation| "session" (shared)   |
+| diagnosis               | Diagnosis (flat)           | "assessment" (shared)|
+| finding                 | Finding (flat)             | "assessment" (shared)|
+| exercise                | Exercise (flat)            | "assessment" (shared)|
+| clinical_observation    | All 6 status entry types   | Not extracted        |
+| applied_treatment       | AppliedTreatment           | Not extracted        |
+| diagnosis_treatment     | DiagnosisTreatments        | Not extracted        |
+| diagnosis_source        | DiagnosisSource            | Not extracted        |
+| invoice_item            | InvoiceItem                | Not extracted        |
+| pre_treatment           | PreTreatmentDocumentation  | Not extracted        |
+| discharge_report        | DischargeReport            | Not extracted        |
 
-The three-tier conflict rules still apply, now at file level:
+**B) Add missing files to the sync flow** (new sync phases):
 
-| File location          | Data category    | Conflict rule         |
-|------------------------|------------------|-----------------------|
-| patients/*/patient.json| master_data      | iPad wins             |
-| patients/*/invoices/*  | transactional    | iPad wins             |
-| patients/*/changes/*   | transactional    | iPad wins (append-only, no conflict possible) |
-| patients/*/media/*     | transactional    | iPad wins (append-only) |
-| patients/*/contract*   | transactional    | iPad wins             |
-| patients/*/therapy_*/* | transactional    | iPad wins             |
-| resources/parameter/*  | parameter        | Server wins           |
-| resources/templates/*  | parameter        | Server wins           |
-| availability_*.json    | transactional    | iPad wins             |
+| File type               | Proposed sync mechanism                        |
+|-------------------------|------------------------------------------------|
+| changes/*.json          | New push phase: send change log files as entities with type "change_log" |
+| invoices/*.json         | Already extracted but as flat entity — keep as-is, extract line items separately |
+| invoices/*.pdf          | Add to attachment metadata, upload via existing AttachmentUploader |
+| contract*.pdf           | Add to attachment metadata, upload via existing AttachmentUploader |
+| agreement*.pdf          | Add to attachment metadata, upload via existing AttachmentUploader |
+| discharge_report*.pdf   | Add to attachment metadata, upload via existing AttachmentUploader |
 
-**Note on deletions**: Per the existing sync protocol, deletions from iPads
-are always rejected. If a file exists on the server but is missing on the iPad,
-the server keeps it (the file was either deleted on the iPad — which is
-rejected — or never existed on this particular iPad).
+**C) Ensure parent references in extracted entities**:
+
+Each extracted entity must carry its parent chain so the server can
+reconstruct the hierarchy:
+
+| Entity               | Required parent FKs                        |
+|----------------------|--------------------------------------------|
+| therapy              | patientId                                  |
+| diagnosis            | patientId, therapyId                       |
+| finding              | patientId, therapyId                       |
+| therapy_plan         | patientId, therapyId, diagnosisId          |
+| treatment_session    | patientId, therapyId, therapyPlanId        |
+| session_doc          | patientId, therapyId, therapyPlanId, sessionId |
+| clinical_observation | patientId, parentType, parentId            |
+| invoice              | patientId, therapyPlanId                   |
+| invoice_item         | invoiceId, sessionId                       |
+| change_log           | patientId                                  |
+
+**D) Binary files via existing attachment pipeline**:
+
+The `AttachmentUploader` already works — it uploads files via multipart
+POST after push acceptance. The gap is that binary files (PDFs, images)
+are not currently referenced in the push metadata. Fix by:
+
+1. EntityExtractor includes `MediaFile` metadata entries for ALL binary
+   files (diagnosis images, exercise videos, invoice PDFs, contracts,
+   agreements, discharge reports)
+2. Push includes these as attachment references
+3. Server responds with `pendingUploads` for files it doesn't have yet
+4. AttachmentUploader uploads only missing files (existing dedup by hash)
+
+This extends the working delta sync without replacing it.
 
 ### 7.2 Data loss inventory
 
