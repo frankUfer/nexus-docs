@@ -2177,19 +2177,79 @@ This section analyzes what data exists in the source systems vs what the
 warehouse currently captures, identifying every gap that must be closed for
 the DWH to be the single source of truth.
 
-### 7.1 Current data flow
+### 7.1 Complete iPad file inventory
+
+The iPad stores **all** domain data as files in its Documents/ directory.
+The following is the complete file tree that must be considered as source
+for the warehouse — not just patient.json and availability.
+
+```
+Documents/
+├── patients/
+│   └── {patientId}/                          ← one folder per patient
+│       ├── patient.json                      ← Patient master data (PatientFile envelope)
+│       ├── contract.pdf                      ← current treatment contract
+│       ├── contract{YYYY-MM-DD}.pdf          ← archived contracts (dated)
+│       ├── changes/                          ← field-level change log
+│       │   └── {YYYYMMDD-HHmmss}.json        ← one file per save operation
+│       ├── invoices/                         ← billing documents
+│       │   ├── {invoiceNumber}.json           ← Invoice struct (header + items)
+│       │   └── {invoiceNumber}.pdf            ← generated invoice PDF
+│       ├── media/                            ← binary files (images, videos, PDFs)
+│       │   └── {therapyId}/                   ← grouped by therapy
+│       │       ├── {filename}.jpg             ← diagnosis images
+│       │       ├── {filename}.mp4             ← exercise videos
+│       │       └── {filename}.pdf             ← diagnosis documents
+│       └── therapy_{therapyId}/              ← per-therapy documents
+│           ├── agreement.pdf                  ← current therapy agreement
+│           ├── agreement{YYYY-MM-DD}.pdf      ← archived agreements (dated)
+│           └── discharge_report_{date}.pdf    ← discharge report PDF
+│
+├── resources/
+│   ├── parameter/                            ← parameter data (server-synced)
+│   │   ├── practiceInfo.json                  ← practice + therapists + services
+│   │   ├── therapist.json                     ← therapist reference
+│   │   ├── publicAddresses.json               ← branch locations
+│   │   ├── insurances.json                    ← insurance companies
+│   │   ├── specialties.json                   ← medical specialties
+│   │   ├── physioReferenceData.json           ← body regions
+│   │   ├── diagnoseReferenceData.json         ← diagnosis codes
+│   │   ├── assessments.json                   ← assessment types
+│   │   ├── endFeelings.json                   ← end feeling options
+│   │   ├── jointMovementPatterns.json         ← movement patterns
+│   │   ├── joints.json                        ← joint definitions
+│   │   ├── muscleGroups.json                  ← muscle group definitions
+│   │   ├── tissues.json                       ← tissue types
+│   │   ├── tissueStates.json                  ← tissue states
+│   │   ├── anamnesis.json                     ← anamnesis questions
+│   │   ├── painQualities.json                 ← pain descriptions
+│   │   ├── painStructures.json                ← pain localization
+│   │   └── plzOrtDeutschland.csv              ← postal code lookup (static)
+│   ├── templates/                            ← document templates
+│   │   ├── therapyAgreement.txt               ← agreement template
+│   │   └── treatmentContract.txt              ← contract template
+│   └── tls/                                  ← certificates (not for DWH)
+│       └── nexus-ca-cert.txt
+│
+└── availability_{therapistId}.json           ← therapist availability slots
+```
+
+### 7.1.1 Current data flow (broken)
+
+The current sync pipeline uses `EntityExtractor` to flatten patient.json into
+coarse entity types. This approach loses data at every step:
 
 ```
 iPad App                          Server (nexus-core)
 ─────────                         ───────────────────
 patient.json ──┐
                ├── EntityExtractor ──→ SyncPushChange ──→ sync_inbound
-changes/*.json │   (flattens)          (per entity)       (raw staging)
-               │                                              │
-               │                                              ▼
-               │                                         sync_entity
-               │                                         (current state,
-               │                                          version tracked)
+               │   (flattens, loses     (6 entity        (raw staging)
+               │    parent links,        types only)          │
+               │    discards nested                           ▼
+               │    detail)                              sync_entity
+               │                                         (current state only,
+               │                                          overwrites previous)
                │                                              │
                │                                         ┌────┴────┐
                │                                         ▼         ▼
@@ -2198,60 +2258,194 @@ changes/*.json │   (flattens)          (per entity)       (raw staging)
                │                                     master      JSONB data)
                │                                     only)
                │
-availability/ ─┘                  sync_conflict (conflict audit)
+availability ──┘
+                                  sync_conflict (conflict audit)
                                   sync_operation (push/pull stats)
                                   sync_attachment (metadata only — no files)
+
+NOT SYNCED:                       NOT IN DWH:
+  changes/*.json                    parameter dimensions
+  invoices/*.json + *.pdf           typed fact tables
+  media/**/*.jpg/mp4                change log
+  contract*.pdf                     invoice line items
+  agreement*.pdf                    clinical observations
+  discharge_report*.pdf             applied treatments
+  resources/parameter/*.json        attachment files
 ```
+
+### 7.1.2 Proposed data flow: file-based sync
+
+Instead of the lossy EntityExtractor approach, the iPad should **transfer its
+folder structure directly** to the server. The server receives the raw files,
+compares them against the state from the last sync, and processes only what
+has changed or been added.
+
+**Principle**: Copy the `patients/` folder, the `resources/` folder, and the
+`availability_*.json` files. The server reads all files in these folders,
+compares timestamps and content against the last known state, and ingests
+everything that is newer.
+
+```
+iPad App                          Server (nexus-core)
+─────────                         ───────────────────
+
+patients/  ──────────────────────→ /var/nexus/devices/{deviceId}/patients/
+  {patientId}/                        (mirror of iPad folder per device)
+    patient.json                      │
+    changes/*.json                    ├── Ingest engine reads ALL files
+    invoices/*.json + *.pdf           │   compares against last sync state
+    media/**/*.*                      │   processes only new/changed files
+    contract*.pdf                     │
+    therapy_*/agreement*.pdf          │
+    therapy_*/discharge_report*.pdf   │
+                                      ▼
+resources/ ──────────────────────→ /var/nexus/devices/{deviceId}/resources/
+  parameter/*.json                    (parameter files — server wins on conflict)
+                                      │
+availability_*.json ─────────────→    │
+                                      ▼
+                                 STAGING (raw ingest)
+                                   staging.sync_file_state   ← file metadata (path, hash, mtime)
+                                   staging.sync_inbound      ← parsed JSON content
+                                   staging.sync_attachment    ← binary file metadata
+                                      │
+                                      ▼
+                                 WAREHOUSE (typed tables)
+                                   dim_patient, dim_therapist, dim_practice, ...
+                                   fact_therapy, fact_session, fact_invoice, ...
+                                   fact_change_log, fact_clinical_observation, ...
+                                   fact_attachment (with actual files on disk)
+```
+
+**How the server detects changes**:
+
+| Step | What happens                                                    |
+|------|-----------------------------------------------------------------|
+| 1    | iPad sends list of files with paths, sizes, and modification timestamps |
+| 2    | Server compares against `sync_file_state` table (last known state per device) |
+| 3    | Files where `mtime > last_sync_mtime` OR `size != last_size` are flagged as changed |
+| 4    | New files (path not in `sync_file_state`) are flagged as added   |
+| 5    | Only changed/added files are transferred (delta sync)           |
+| 6    | Server parses JSON files, stores binaries, updates `sync_file_state` |
+| 7    | ETL reads parsed data into warehouse tables                     |
+
+**New staging table: sync_file_state**
+
+| Column        | Type        | Nullable | Description                              |
+|---------------|-------------|----------|------------------------------------------|
+| id            | BIGSERIAL   | no       | PK                                       |
+| device_id     | UUID        | no       | FK → sync_device_state                   |
+| file_path     | TEXT        | no       | Relative path from Documents/ root       |
+| file_type     | TEXT        | no       | "json", "pdf", "jpg", "mp4", etc.        |
+| file_size     | BIGINT      | no       | Size in bytes                            |
+| file_hash     | TEXT        | no       | SHA-256 hash for content comparison      |
+| last_modified | TIMESTAMPTZ | no       | File modification timestamp from iPad    |
+| synced_at     | TIMESTAMPTZ | no       | When this version was received           |
+| content_type  | TEXT        | no       | "patient", "invoice", "change_log", "parameter", "media", "agreement", "contract", "discharge", "availability" |
+
+**Unique constraint**: `(device_id, file_path)` — one entry per file per device.
+
+**Advantages over EntityExtractor approach**:
+
+| Aspect                  | EntityExtractor (current)          | File-based sync (proposed)         |
+|-------------------------|------------------------------------|------------------------------------|
+| Data completeness       | Partial — loses nested detail      | Complete — all files transferred   |
+| Parent-child links      | Lost during flattening             | Preserved in JSON structure        |
+| Binary files            | Stubbed (never sent)               | All files included                 |
+| Change detection        | iPad-side (fragile)                | Server-side (reliable)             |
+| Change logs             | Not synced                         | Synced as files                    |
+| Invoice JSON + PDF      | Only JSON, no line item detail     | Both JSON and PDF                  |
+| Parameter files         | Separate flow                      | Same flow, unified                 |
+| iPad code complexity    | High (EntityExtractor, ChangeDetector, OutboundQueue) | Low (file listing + transfer) |
+| Server code complexity  | Low (receives pre-flattened)       | Higher (must parse all structures) |
+| Conflict resolution     | Entity-level                       | File-level (same rules apply)      |
+| Bandwidth               | Only changed entities              | Only changed files (delta by hash) |
+
+**Conflict resolution in file-based sync**:
+
+The three-tier conflict rules still apply, now at file level:
+
+| File location          | Data category    | Conflict rule         |
+|------------------------|------------------|-----------------------|
+| patients/*/patient.json| master_data      | iPad wins             |
+| patients/*/invoices/*  | transactional    | iPad wins             |
+| patients/*/changes/*   | transactional    | iPad wins (append-only, no conflict possible) |
+| patients/*/media/*     | transactional    | iPad wins (append-only) |
+| patients/*/contract*   | transactional    | iPad wins             |
+| patients/*/therapy_*/* | transactional    | iPad wins             |
+| resources/parameter/*  | parameter        | Server wins           |
+| resources/templates/*  | parameter        | Server wins           |
+| availability_*.json    | transactional    | iPad wins             |
+
+**Note on deletions**: Per the existing sync protocol, deletions from iPads
+are always rejected. If a file exists on the server but is missing on the iPad,
+the server keeps it (the file was either deleted on the iPad — which is
+rejected — or never existed on this particular iPad).
 
 ### 7.2 Data loss inventory
 
-| Source data                    | Currently synced? | Currently in DWH? | Gap                                        |
+| Source file / data             | Currently synced? | Currently in DWH? | Gap                                        |
 |--------------------------------|-------------------|--------------------|---------------------------------------------|
-| Patient demographics           | Yes (as JSONB)    | dim_entity (JSONB) | No typed columns, buried in JSON            |
-| Patient addresses              | Yes (embedded)    | dim_entity.data    | Not queryable without JSONB extraction      |
-| Patient anamnesis              | Yes (embedded)    | dim_entity.data    | Deep nesting, not queryable                 |
-| Therapy                        | Partial (flat)    | fact_transaction   | Parent-child links lost                     |
-| Diagnosis                      | Partial (flat)    | fact_transaction   | Source doctor info lost in JSONB            |
-| DiagnosisSource                | Embedded in diag  | Lost in JSONB      | No dim_doctor table                         |
-| DiagnosisTreatments            | Embedded          | Lost in JSONB      | Prescribed treatments not queryable         |
-| Finding                        | Partial (flat)    | fact_transaction   | Clinical entries lost in JSONB              |
-| PreTreatmentDocumentation      | Partial (flat)    | fact_transaction   | Consent data lost in JSONB                  |
-| TherapyPlan                    | Partial (flat)    | fact_transaction   | Plan-session link lost                      |
-| TreatmentSessions              | Partial (flat)    | fact_transaction   | Session facts not individual rows           |
-| TherapySessionDocumentation    | Partial (flat)    | fact_transaction   | Clinical entries lost in JSONB              |
-| AppliedTreatment               | Embedded          | Lost in JSONB      | Service usage not queryable                 |
-| Exercise                       | Partial (flat)    | fact_transaction   | Exercise details lost in JSONB              |
-| DischargeReport                | Partial (flat)    | fact_transaction   | Report content lost in JSONB                |
-| Invoice header                 | Partial (flat)    | fact_transaction   | No fact_invoice table                       |
-| Invoice line items             | Embedded          | Lost in JSONB      | No fact_invoice_item table                  |
-| Clinical status entries        | Embedded          | Lost in JSONB      | No fact_clinical_observation                |
-| **Change logs**                | **NOT synced**    | **Not in DWH**     | **No field-level audit trail on server**    |
-| **Media files (JPG/PDF)**      | **NOT uploaded**  | **Not in DWH**     | **Attachment pipeline stubbed**             |
-| **Therapy agreements (PDF)**   | **NOT uploaded**  | **Not in DWH**     | **File never sent**                         |
-| **Treatment contracts (PDF)**  | **NOT uploaded**  | **Not in DWH**     | **File never sent**                         |
-| **Discharge report PDFs**      | **NOT uploaded**  | **Not in DWH**     | **File never sent**                         |
-| AvailabilityEntry              | Yes (flat)        | fact_transaction   | No dedicated availability fact              |
-| Parameters (16 types)          | Yes (full)        | Not in DWH         | No dimension tables for parameters          |
-| PracticeInfo                   | Yes (full)        | Not in DWH         | No dim_practice                             |
-| Therapists                     | Embedded in PI    | Not in DWH         | No dim_therapist                            |
-| TreatmentService               | Embedded in PI    | Not in DWH         | No dim_service                              |
-| Sync conflicts                 | Yes (server-side) | Not in DWH         | sync_conflict exists but no mart            |
-| Sync operations                | Yes               | fact_sync_log      | Exists but never populated                  |
+| **patient.json**               |                   |                    |                                             |
+| › Patient demographics        | Yes (as JSONB)    | dim_entity (JSONB) | No typed columns, buried in JSON            |
+| › Patient addresses            | Yes (embedded)    | dim_entity.data    | Not queryable without JSONB extraction      |
+| › Patient anamnesis            | Yes (embedded)    | dim_entity.data    | Deep nesting, not queryable                 |
+| › Therapy                      | Partial (flat)    | fact_transaction   | Parent-child links lost                     |
+| › Diagnosis                    | Partial (flat)    | fact_transaction   | Source doctor info lost in JSONB            |
+| › DiagnosisSource              | Embedded in diag  | Lost in JSONB      | No dim_doctor table                         |
+| › DiagnosisTreatments          | Embedded          | Lost in JSONB      | Prescribed treatments not queryable         |
+| › Finding                      | Partial (flat)    | fact_transaction   | Clinical entries lost in JSONB              |
+| › PreTreatmentDocumentation    | Partial (flat)    | fact_transaction   | Consent data lost in JSONB                  |
+| › TherapyPlan                  | Partial (flat)    | fact_transaction   | Plan-session link lost                      |
+| › TreatmentSessions            | Partial (flat)    | fact_transaction   | Session facts not individual rows           |
+| › TherapySessionDocumentation  | Partial (flat)    | fact_transaction   | Clinical entries lost in JSONB              |
+| › AppliedTreatment             | Embedded          | Lost in JSONB      | Service usage not queryable                 |
+| › Exercise                     | Partial (flat)    | fact_transaction   | Exercise details lost in JSONB              |
+| › DischargeReport              | Partial (flat)    | fact_transaction   | Report content lost in JSONB                |
+| › Clinical status entries      | Embedded          | Lost in JSONB      | No fact_clinical_observation                |
+| **invoices/*.json**            |                   |                    |                                             |
+| › Invoice header               | Partial (flat)    | fact_transaction   | No fact_invoice table                       |
+| › Invoice line items           | Embedded          | Lost in JSONB      | No fact_invoice_item table                  |
+| **invoices/*.pdf**             | **NOT uploaded**  | **Not in DWH**     | **Invoice PDFs never sent**                 |
+| **changes/*.json**             | **NOT synced**    | **Not in DWH**     | **No field-level audit trail on server**    |
+| **media/**/*.jpg/mp4/pdf**     | **NOT uploaded**  | **Not in DWH**     | **Attachment pipeline stubbed**             |
+| **contract*.pdf**              | **NOT uploaded**  | **Not in DWH**     | **Treatment contract PDFs never sent**      |
+| **therapy_*/agreement*.pdf**   | **NOT uploaded**  | **Not in DWH**     | **Therapy agreement PDFs never sent**       |
+| **therapy_*/discharge_*.pdf**  | **NOT uploaded**  | **Not in DWH**     | **Discharge report PDFs never sent**        |
+| **resources/parameter/*.json** |                   |                    |                                             |
+| › practiceInfo.json            | Yes (full)        | Not in DWH         | No dim_practice                             |
+| › therapist.json               | Embedded in PI    | Not in DWH         | No dim_therapist                            |
+| › TreatmentService             | Embedded in PI    | Not in DWH         | No dim_service                              |
+| › 13 other parameter files     | Yes (full)        | Not in DWH         | No dimension tables for parameters          |
+| › plzOrtDeutschland.csv        | Static seed       | Not in DWH         | No postal code lookup table                 |
+| **resources/templates/*.txt**  | Not tracked       | Not in DWH         | Templates not version-tracked               |
+| **availability_*.json**        | Yes (flat)        | fact_transaction   | No dedicated availability fact              |
+| **Sync operational data**      |                   |                    |                                             |
+| › Sync conflicts               | Yes (server-side) | Not in DWH         | sync_conflict exists but no mart            |
+| › Sync operations              | Yes               | fact_sync_log      | Exists but never populated                  |
 
 ### 7.3 Requirements for single source of truth
 
 For the DWH to be THE authoritative data store with no missing data:
 
-#### R1: All source data must arrive at the server
+#### R1: All source files must arrive at the server
 
-| What must be synced                   | Current status | Required change                    |
-|---------------------------------------|----------------|------------------------------------|
-| Patient (full, with nested children)  | Partial        | Sync all sub-entities individually |
-| Change logs (field-level diffs)       | Not synced     | New sync entity type               |
-| Media files (JPG, PNG, PDF, video)    | Not uploaded   | Fix attachment pipeline            |
-| Therapy agreement PDFs               | Not uploaded   | Include in attachment sync         |
-| Treatment contract PDFs              | Not uploaded   | Include in attachment sync         |
-| Discharge report PDFs                | Not uploaded   | Include in attachment sync         |
+With file-based sync (§7.1.2), this becomes straightforward — transfer the
+complete folder structure:
+
+| Folder / file                        | Current status          | Required action                     |
+|--------------------------------------|-------------------------|-------------------------------------|
+| `patients/*/patient.json`            | Partial (via extractor) | Transfer raw file instead           |
+| `patients/*/changes/*.json`          | NOT synced              | Transfer all change log files       |
+| `patients/*/invoices/*.json`         | Partial (via extractor) | Transfer raw file instead           |
+| `patients/*/invoices/*.pdf`          | NOT uploaded            | Transfer binary file                |
+| `patients/*/media/**/*.*`            | NOT uploaded            | Transfer all media files            |
+| `patients/*/contract*.pdf`           | NOT uploaded            | Transfer binary file                |
+| `patients/*/therapy_*/agreement*.pdf`| NOT uploaded            | Transfer binary file                |
+| `patients/*/therapy_*/discharge_*`   | NOT uploaded            | Transfer binary file                |
+| `resources/parameter/*.json`         | Yes (separate flow)     | Unify into same file transfer       |
+| `resources/templates/*.txt`          | Not tracked             | Transfer for completeness           |
+| `availability_*.json`                | Yes (separate flow)     | Unify into same file transfer       |
 
 #### R2: All data must have typed warehouse tables (no JSONB catch-alls)
 
@@ -2315,14 +2509,17 @@ that should be **replaced** by the typed tables above, not augmented.
 
 #### R5: Change log as first-class data
 
-The change log must flow through the full pipeline:
+With file-based sync, change log files arrive naturally as part of the
+`patients/{patientId}/changes/` folder — no special handling needed on the
+iPad side. The server processes them like any other file:
 
 ```
 iPad                          Server                        Warehouse
 ─────                         ──────                        ─────────
-changes/*.json ──→ new sync ──→ staging.sync_change_log ──→ fact_change_log
-                   entity       (raw, per file)             (parsed, per field)
-                   type
+patients/{id}/changes/ ──→ file transfer ──→ parse JSON ──→ fact_change_log
+  20260304-093010.json       (delta by       (one row        (per field,
+  20260304-094520.json        file hash)      per entry)      with entity
+  ...                                                         context)
 ```
 
 Each change log file becomes multiple rows in `fact_change_log` (one per
@@ -2330,65 +2527,128 @@ Each change log file becomes multiple rows in `fact_change_log` (one per
 and entity ID, enabling joins back to the corresponding fact and dimension
 tables.
 
-### 7.4 Entity extraction redesign (required)
+### 7.4 Server-side parsing (replaces EntityExtractor)
 
-The current `EntityExtractor` flattens the patient into coarse entity types
-(`patient`, `session`, `assessment`, `invoice`) that don't match the warehouse
-grain. For the DWH to receive properly structured data, the extractor must
-produce **one sync entity per warehouse target table**.
+With file-based sync (§7.1.2), the EntityExtractor on the iPad becomes
+unnecessary. Instead, the **server** reads the raw files and decomposes them
+into warehouse-ready structures. This moves complexity from the iPad to the
+server, where it belongs — the server has full context, can compare against
+previous versions, and can produce properly structured records for every
+warehouse target table.
 
-**Current extraction** (6 entity types):
+#### 7.4.1 File-to-table mapping
 
-| SyncEntityType | What it contains                          |
-|----------------|-------------------------------------------|
-| patient        | Patient demographics (without therapies)  |
-| session        | Therapy OR TherapyPlan OR TreatmentSession OR SessionDoc |
-| assessment     | Diagnosis OR Finding OR Exercise          |
-| invoice        | Invoice (header + items + aggregation)    |
-| availability   | AvailabilitySlot                          |
-| documentMeta   | MediaFile metadata                        |
+The server's ingest engine maps each file type to the warehouse tables it feeds:
 
-**Required extraction** (matches warehouse tables):
+| File                                | Parsing                           | Warehouse targets                                  |
+|-------------------------------------|-----------------------------------|----------------------------------------------------|
+| `patient.json`                      | Read PatientFile, walk full tree  | dim_patient, fact_therapy, fact_diagnosis, fact_finding, fact_therapy_plan, fact_session, fact_session_doc, fact_clinical_observation, fact_exercise, fact_pre_treatment, fact_discharge |
+| `changes/{ts}.json`                 | Read ChangeLog, one row per entry | fact_change_log                                    |
+| `invoices/{num}.json`               | Read Invoice + items              | fact_invoice, fact_invoice_item                     |
+| `invoices/{num}.pdf`                | Binary, metadata only             | fact_attachment (type=invoice_pdf)                  |
+| `media/{therapyId}/{file}`          | Binary, metadata only             | fact_attachment (type=media)                        |
+| `contract*.pdf`                     | Binary, metadata only             | fact_attachment (type=contract)                     |
+| `therapy_{id}/agreement*.pdf`       | Binary, metadata only             | fact_attachment (type=agreement)                    |
+| `therapy_{id}/discharge_report*.pdf`| Binary, metadata only             | fact_attachment (type=discharge_report)             |
+| `resources/parameter/*.json`        | Read each parameter file          | dim_parameter, dim_therapist, dim_practice, dim_service |
+| `availability_{id}.json`            | Read AvailabilitySlot array       | fact_availability                                   |
 
-| Sync entity type          | Source                          | Warehouse target          |
-|---------------------------|---------------------------------|---------------------------|
-| patient                   | Patient (flat, no therapies)    | dim_patient               |
-| therapy                   | Therapy (flat, no children)     | fact_therapy              |
-| diagnosis                 | Diagnosis (flat, no media)      | fact_diagnosis            |
-| diagnosis_treatment       | DiagnosisTreatments             | fact_diagnosis (detail)   |
-| diagnosis_source          | DiagnosisSource                 | dim_doctor                |
-| finding                   | Finding (flat, no entries)      | fact_finding              |
-| pre_treatment             | PreTreatmentDocumentation       | fact_pre_treatment        |
-| exercise                  | Exercise (flat, no media)       | fact_exercise             |
-| therapy_plan              | TherapyPlan (flat, no children) | fact_therapy_plan         |
-| session                   | TreatmentSessions               | fact_session              |
-| session_doc               | TherapySessionDocumentation     | fact_session_doc          |
-| applied_treatment         | AppliedTreatment                | fact_session_doc (detail) |
-| clinical_observation      | All 6 status entry types        | fact_clinical_observation |
-| invoice                   | Invoice (header only)           | fact_invoice              |
-| invoice_item              | InvoiceItem                     | fact_invoice_item         |
-| discharge_report          | DischargeReport                 | fact_discharge            |
-| availability              | AvailabilitySlot                | fact_availability         |
-| media_file                | MediaFile (metadata)            | fact_attachment           |
-| change_log                | ChangeLog (per file)            | fact_change_log           |
+#### 7.4.2 Patient.json decomposition (server-side)
 
-Each entity must carry its **parent references** explicitly:
+The server reads the complete patient.json and walks the nested tree,
+extracting rows for each warehouse table. Parent references are preserved
+because the server reads the full structure:
 
-| Entity               | Required parent FKs                        |
-|----------------------|--------------------------------------------|
-| therapy              | patientId                                  |
-| diagnosis            | patientId, therapyId                       |
-| finding              | patientId, therapyId                       |
-| therapy_plan         | patientId, therapyId, diagnosisId          |
-| session              | patientId, therapyId, therapyPlanId        |
-| session_doc          | patientId, therapyId, therapyPlanId, sessionId |
-| clinical_observation | patientId, parentType, parentId            |
-| invoice              | patientId, therapyPlanId                   |
-| invoice_item         | invoiceId, sessionId                       |
-| change_log           | patientId                                  |
+```
+patient.json (PatientFile)
+  └── patient (Patient struct)
+      │
+      ├── demographics ──────────────────────→ dim_patient
+      │   (id, title, firstname, lastname,     (SCD2 with typed columns)
+      │    birthdate, sex, addresses,
+      │    anamnesis, insurance, ...)
+      │
+      └── therapies[] ──────────────────────→ fact_therapy (one row per therapy)
+          │   carries: patientId
+          │
+          ├── diagnoses[] ──────────────────→ fact_diagnosis (one row per diagnosis)
+          │   │   carries: patientId, therapyId
+          │   ├── source ──────────────────→ dim_doctor (deduplicated)
+          │   ├── treatments[] ────────────→ fact_diagnosis (detail rows)
+          │   └── mediaFiles[] ────────────→ fact_attachment (metadata, file in media/)
+          │
+          ├── findings[] ──────────────────→ fact_finding (one row per finding)
+          │   │   carries: patientId, therapyId
+          │   ├── assessments[] ───────────→ fact_clinical_observation
+          │   ├── joints[] ────────────────→ fact_clinical_observation
+          │   ├── muscles[] ───────────────→ fact_clinical_observation
+          │   ├── tissues[] ───────────────→ fact_clinical_observation
+          │   ├── otherAnomalies[] ────────→ fact_clinical_observation
+          │   ├── symptoms[] ──────────────→ fact_clinical_observation
+          │   └── mediaFiles[] ────────────→ fact_attachment
+          │
+          ├── preTreatment ────────────────→ fact_pre_treatment
+          │       carries: patientId, therapyId
+          │
+          ├── exercises[] ─────────────────→ fact_exercise
+          │       carries: patientId, therapyId
+          │
+          ├── therapyPlans[] ──────────────→ fact_therapy_plan
+          │   │   carries: patientId, therapyId, diagnosisId
+          │   │
+          │   ├── treatmentSessions[] ─────→ fact_session
+          │   │       carries: patientId, therapyId, therapyPlanId
+          │   │
+          │   └── sessionDocs[] ───────────→ fact_session_doc
+          │       │   carries: patientId, therapyId, therapyPlanId, sessionId
+          │       ├── assessments[] ───────→ fact_clinical_observation
+          │       ├── joints[] ────────────→ fact_clinical_observation
+          │       ├── muscles[] ───────────→ fact_clinical_observation
+          │       ├── tissues[] ───────────→ fact_clinical_observation
+          │       ├── otherAnomalies[] ────→ fact_clinical_observation
+          │       ├── symptoms[] ──────────→ fact_clinical_observation
+          │       └── appliedTreatments[] ─→ fact_applied_treatment
+          │
+          ├── dischargeReport ─────────────→ fact_discharge
+          │       carries: patientId, therapyId
+          │
+          └── invoices[] ──────────────────→ (see invoice JSON files below)
+```
 
-This preserves the complete containment hierarchy that is currently lost
-during extraction.
+#### 7.4.3 Change detection by the server
+
+When the server receives files, it compares against the last known state:
+
+**For JSON files** (patient.json, invoices, parameters):
+1. Compare file hash (SHA-256) against `sync_file_state.file_hash`
+2. If hash differs → parse new JSON, compare against stored version
+3. Server runs its own diff (equivalent to iPad's ChangeDetector) to determine
+   which nested entities changed
+4. Only changed entities are re-processed through ETL
+
+**For binary files** (PDF, JPG, MP4):
+1. Compare file hash against `sync_file_state.file_hash`
+2. If hash differs or file is new → store file, update `fact_attachment`
+3. Binary files are immutable in practice (a new agreement creates a new file
+   with a dated name, it doesn't overwrite the existing one)
+
+**For change log files** (changes/*.json):
+1. New files (timestamp > last sync) → parse and insert into `fact_change_log`
+2. Change logs are append-only — old files never change
+3. After successful processing, mark as synced in `sync_file_state`
+
+#### 7.4.4 Advantages of server-side parsing
+
+| Aspect                    | Why it matters                                               |
+|---------------------------|--------------------------------------------------------------|
+| Complete data             | Server reads the full patient.json tree — nothing lost       |
+| Parent references         | Server walks the tree, so it knows every parent-child link   |
+| No iPad code changes      | iPad just sends files — no EntityExtractor rewrite needed    |
+| Server-side diff          | Server compares against its own stored state — more reliable |
+| Historical completeness   | All change logs, all PDFs, all media — everything arrives    |
+| Parameter handling        | Same pipeline for parameter files (server wins on conflict)  |
+| Testability               | Server parsing can be unit-tested with sample files          |
+| Future-proof              | New fields in patient.json are automatically captured        |
 
 ---
 
