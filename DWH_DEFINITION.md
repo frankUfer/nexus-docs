@@ -843,8 +843,9 @@ When an invoice is reversed:
    as one row. Individual line items — the most analytically valuable part
    (revenue per service, per session, per therapist) — are buried in JSONB.
 
-3. **PDF not uploaded**: Attachment pipeline is stubbed (`attachments: []` in
-   push). Invoice PDFs are never sent to the server.
+3. **PDF not uploaded**: Invoice PDFs are not referenced in the push metadata,
+   so the server never requests them via `pendingUploads`. The `AttachmentUploader`
+   itself works — it just never receives invoice PDFs to upload.
 
 4. **Provider fields are snapshots**: The invoice captures practice info at
    creation time. If the practice address or bank details change later, old
@@ -1909,9 +1910,11 @@ Patient
    (joint ROM measurements, muscle assessments, pain levels over time) is
    buried 6 levels deep in JSONB. No current warehouse table can surface it.
 
-4. **Attachment pipeline stubbed**: Media files (diagnosis images, exercise
-   videos, signatures, discharge PDFs, therapy agreements, treatment contracts)
-   are never uploaded. `attachments: []` is hardcoded in the push payload.
+4. **Binary files not referenced in push metadata**: The `AttachmentUploader`
+   works (uploads files via multipart POST when the server requests them), but
+   most binary files (diagnosis images, exercise videos, signatures, discharge
+   PDFs, therapy agreements, treatment contracts) are not included as attachment
+   references in the push, so the server never requests their upload.
 
 5. **Status flags instead of enum**: TreatmentSessions uses 6 boolean flags
    (`draft`, `isPlanned`, `isScheduled`, `isDone`, `isInvoiced`, `isPaid`)
