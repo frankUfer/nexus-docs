@@ -13,6 +13,21 @@ struct ChangeLog: Codable {
         let oldValue: String
         let newValue: String
         let therapistId: UUID?
+
+        init(path: String, oldValue: String, newValue: String, therapistId: UUID?) {
+            self.path = path
+            self.oldValue = oldValue
+            self.newValue = newValue
+            self.therapistId = therapistId
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            path = try c.decode(String.self, forKey: .path)
+            oldValue = try c.decode(String.self, forKey: .oldValue)
+            newValue = try c.decode(String.self, forKey: .newValue)
+            therapistId = try decodeOptionalTherapistId(from: c, forKey: .therapistId)
+        }
     }
 
     let changes: [ChangeEntry]

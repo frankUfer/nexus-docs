@@ -224,8 +224,20 @@ enum EntityExtractor {
 
         for filename in newFiles {
             let fileURL = changesDirectory.appendingPathComponent(filename)
-            guard let data = try? Data(contentsOf: fileURL),
-                  let log = try? decoder.decode(ChangeLog.self, from: data) else { continue }
+            guard let data = try? Data(contentsOf: fileURL) else {
+                print("[ChangeLog] Failed to read file: \(fileURL.lastPathComponent)")
+                continue
+            }
+            let log: ChangeLog
+            do {
+                log = try decoder.decode(ChangeLog.self, from: data)
+            } catch {
+                print("[ChangeLog] Decode failed for \(filename): \(error)")
+                if let raw = String(data: data, encoding: .utf8)?.prefix(300) {
+                    print("[ChangeLog] Raw content: \(raw)")
+                }
+                continue
+            }
 
             // Parse timestamp from filename (yyyyMMdd-HH:mm:ss.json)
             let stem = filename.replacingOccurrences(of: ".json", with: "")
@@ -374,31 +386,145 @@ enum EntityExtractor {
             }
         }
 
-        // Complex files: each gets its own entity type with deterministic UUID
-        let complexFiles: [(String, SyncEntityType)] = [
-            ("physioReferenceData", .bodyRegion),
-            ("diagnoseReferenceData", .diagnoseCategory),
-            ("anamnesis", .anamnesisTemplate),
-        ]
-        for (filename, entityType) in complexFiles {
-            guard let url = Bundle.main.url(forResource: filename, withExtension: "json"),
-                  let rawData = try? Data(contentsOf: url),
-                  let json = try? JSONSerialization.jsonObject(with: rawData) as? [String: Any]
-            else { continue }
+        // Diagnose categories: flatten category → term into one row per term
+        if let items = loadReferenceItems(named: "diagnoseReferenceData"),
+           let first = items.first,
+           let categories = first["diagnoseCategories"] as? [[String: Any]] {
+            for category in categories {
+                let catDe = category["category_de"] as? String ?? ""
+                let catEn = category["category_en"] as? String ?? ""
+                guard let terms = category["terms"] as? [[String: Any]] else { continue }
+                for term in terms {
+                    let de = term["de"] as? String ?? ""
+                    let en = term["en"] as? String ?? ""
+                    let entityId = deterministicUUID(from: "diagnose/\(catDe)/\(de)")
+                    entities.append(ExtractedEntity(
+                        entityType: .diagnoseCategory,
+                        entityId: entityId,
+                        patientId: nil,
+                        dataCategory: .parameter,
+                        data: [
+                            "de": AnyCodable(de),
+                            "en": AnyCodable(en),
+                            "category_de": AnyCodable(catDe),
+                            "category_en": AnyCodable(catEn),
+                        ]
+                    ))
+                }
+            }
+        }
 
-            let entityId = deterministicUUID(from: "reference/\(filename)")
-            let data: [String: AnyCodable] = [
-                "name": AnyCodable(filename),
-                "de": AnyCodable(filename),
-                "content": AnyCodable(json),
+        // Body regions: flatten region → part into one row per part
+        // Also includes fascia regions, myofascial chains, neurological areas, functional units
+        if let items = loadReferenceItems(named: "physioReferenceData"),
+           let first = items.first {
+
+            // Body region parts
+            if let regions = first["bodyRegions"] as? [[String: Any]] {
+                for region in regions {
+                    let regDe = region["region_de"] as? String ?? ""
+                    let regEn = region["region_en"] as? String ?? ""
+                    guard let parts = region["parts"] as? [[String: Any]] else { continue }
+                    for part in parts {
+                        let de = part["de"] as? String ?? ""
+                        let en = part["en"] as? String ?? ""
+                        let entityId = deterministicUUID(from: "bodyRegion/\(regDe)/\(de)")
+                        entities.append(ExtractedEntity(
+                            entityType: .bodyRegion,
+                            entityId: entityId,
+                            patientId: nil,
+                            dataCategory: .parameter,
+                            data: [
+                                "de": AnyCodable(de),
+                                "en": AnyCodable(en),
+                                "region_de": AnyCodable(regDe),
+                                "region_en": AnyCodable(regEn),
+                                "sub_type": AnyCodable("body_part"),
+                            ]
+                        ))
+                    }
+                }
+            }
+
+            // Fascia regions
+            if let regions = first["fasciaRegions"] as? [[String: Any]] {
+                for region in regions {
+                    let regDe = region["region_de"] as? String ?? ""
+                    let regEn = region["region_en"] as? String ?? ""
+                    guard let fasciae = region["fasciae"] as? [[String: Any]] else { continue }
+                    for fascia in fasciae {
+                        let de = fascia["de"] as? String ?? ""
+                        let en = fascia["en"] as? String ?? ""
+                        let entityId = deterministicUUID(from: "bodyRegion/fascia/\(regDe)/\(de)")
+                        entities.append(ExtractedEntity(
+                            entityType: .bodyRegion,
+                            entityId: entityId,
+                            patientId: nil,
+                            dataCategory: .parameter,
+                            data: [
+                                "de": AnyCodable(de),
+                                "en": AnyCodable(en),
+                                "region_de": AnyCodable(regDe),
+                                "region_en": AnyCodable(regEn),
+                                "sub_type": AnyCodable("fascia"),
+                            ]
+                        ))
+                    }
+                }
+            }
+
+            // Flat lists: myofascial chains, neurological areas, functional units
+            let flatSections: [(String, String)] = [
+                ("myofascialChains", "myofascial_chain"),
+                ("neurologicalAreas", "neurological"),
+                ("functionalUnits", "functional_unit"),
             ]
-            entities.append(ExtractedEntity(
-                entityType: entityType,
-                entityId: entityId,
-                patientId: nil,
-                dataCategory: .parameter,
-                data: data
-            ))
+            for (key, subType) in flatSections {
+                guard let list = first[key] as? [[String: Any]] else { continue }
+                for item in list {
+                    let de = item["de"] as? String ?? ""
+                    let en = item["en"] as? String ?? ""
+                    let entityId = deterministicUUID(from: "bodyRegion/\(subType)/\(de)")
+                    entities.append(ExtractedEntity(
+                        entityType: .bodyRegion,
+                        entityId: entityId,
+                        patientId: nil,
+                        dataCategory: .parameter,
+                        data: [
+                            "de": AnyCodable(de),
+                            "en": AnyCodable(en),
+                            "sub_type": AnyCodable(subType),
+                        ]
+                    ))
+                }
+            }
+        }
+
+        // Anamnesis template: flatten each condition into its own row with category
+        if let url = Bundle.main.url(forResource: "anamnesis", withExtension: "json"),
+           let rawData = try? Data(contentsOf: url),
+           let json = try? JSONSerialization.jsonObject(with: rawData) as? [String: Any],
+           let anamnesis = json["anamnesis"] as? [String: Any],
+           let medHistory = anamnesis["medicalHistory"] as? [String: [String]],
+           let localization = json["localization"] as? [String: Any] {
+            let locEn = localization["en"] as? [String: String] ?? [:]
+            let locDe = localization["de"] as? [String: String] ?? [:]
+            for (category, conditions) in medHistory {
+                for condition in conditions {
+                    let entityId = deterministicUUID(from: "anamnesis/\(category)/\(condition)")
+                    entities.append(ExtractedEntity(
+                        entityType: .anamnesisTemplate,
+                        entityId: entityId,
+                        patientId: nil,
+                        dataCategory: .parameter,
+                        data: [
+                            "de": AnyCodable(locDe[condition] ?? condition),
+                            "en": AnyCodable(locEn[condition] ?? condition),
+                            "category": AnyCodable(category),
+                        ]
+                    ))
+                }
+            }
         }
 
         return entities

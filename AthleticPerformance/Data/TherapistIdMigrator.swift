@@ -8,7 +8,8 @@ import Foundation
 /// A marker file prevents re-running.
 enum TherapistIdMigrator {
 
-    private static let markerFileName = "therapist_id_migration_complete.json"
+    // v2: bumped to re-run migration after ChangeLog decoder fix (Int→UUID)
+    private static let markerFileName = "therapist_id_migration_v2_complete.json"
 
     static func runIfNeeded() {
         let fm = FileManager.default
