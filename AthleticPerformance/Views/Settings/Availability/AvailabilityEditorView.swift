@@ -271,7 +271,7 @@ struct AvailabilityEditorView: View {
         var merged: [AvailabilitySlot] = []
         for slot in slotsForDay {
             if let last = merged.last, last.end >= slot.start {
-                let updated = AvailabilitySlot(start: last.start, end: max(last.end, slot.end))
+                let updated = AvailabilitySlot(start: last.start, end: max(last.end, slot.end), type: last.type, note: last.note, source: last.source)
                 merged.removeLast()
                 merged.append(updated)
             } else {

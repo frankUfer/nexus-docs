@@ -5,6 +5,9 @@ struct SyncState: Codable {
     var lastPushAt: Date?
     var lastSyncAt: Date?
     var pendingChangeCount: Int = 0
+    /// Tracks the last synced change log filename per patient (patientId string -> filename).
+    /// Filenames are timestamps (yyyyMMdd-HH:mm:ss.json) so lexicographic comparison works.
+    var syncedChangeLogMarkers: [String: String] = [:]
 }
 
 struct ConflictLogEntry: Codable, Identifiable {

@@ -163,7 +163,7 @@ struct DayCalendarView: View {
         let mergedEnd = ([newSlot] + overlapping).map { $0.end }.max()!
 
         // 5. Erstelle neuen Slot mit ursprünglicher ID
-        let mergedSlot = AvailabilitySlot(id: newSlot.id, start: mergedStart, end: mergedEnd)
+        let mergedSlot = AvailabilitySlot(id: newSlot.id, start: mergedStart, end: mergedEnd, type: newSlot.type, note: newSlot.note, source: newSlot.source)
         editedSlots.append(mergedSlot)
         editedSlots.sort(by: { $0.start < $1.start })
 

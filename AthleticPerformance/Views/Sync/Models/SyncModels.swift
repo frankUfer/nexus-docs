@@ -10,15 +10,50 @@ enum SyncDataCategory: String, Codable {
 
 enum SyncEntityType: String, Codable {
     case patient
-    case session
-    case assessment
+    // Fine-grained transactional types (replacing coarse "session" / "assessment")
+    case therapy
+    case diagnosis
+    case diagnosisTreatment = "diagnosis_treatment"
+    case finding
+    case exercise
+    case therapyPlan = "therapy_plan"
+    case treatmentSession = "treatment_session"
+    case sessionDoc = "session_doc"
+    case clinicalObservation = "clinical_observation"
+    case appliedTreatment = "applied_treatment"
+    case preTreatment = "pre_treatment"
+    case dischargeReport = "discharge_report"
     case invoice
+    case invoiceItem = "invoice_item"
     case availability
     case documentMeta = "document_meta"
+    case changeLog = "change_log"
+    // Parameter types (server → iPad, also pushed during initial sync for DWH dimensions)
+    case practice
+    case therapist
+    case service
     case treatmentType = "treatment_type"
     case icdCode = "icd_code"
     case systemConfig = "system_config"
     case referenceData = "reference_data"
+    // Per-file reference data types (each maps to its own dim table)
+    case assessmentRef = "assessment_ref"
+    case jointRef = "joint_ref"
+    case jointMovementPattern = "joint_movement_pattern"
+    case muscleGroup = "muscle_group"
+    case tissueRef = "tissue_ref"
+    case tissueState = "tissue_state"
+    case endFeeling = "end_feeling"
+    case painQuality = "pain_quality"
+    case painStructure = "pain_structure"
+    case specialtyRef = "specialty"
+    case insuranceRef = "insurance"
+    case bodyRegion = "body_region"
+    case diagnoseCategory = "diagnose_category"
+    case anamnesisTemplate = "anamnesis_template"
+    // Legacy coarse types (kept for backward compatibility with existing server data)
+    case session
+    case assessment
 }
 
 // MARK: - Push Request

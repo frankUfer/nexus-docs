@@ -118,11 +118,12 @@ actor NexusSyncClient {
 
     // MARK: - Auth + Retry
 
-    /// Apply auth headers based on transport: X-Device-ID (wired) or Bearer JWT (VPN).
+    /// Apply auth headers based on transport: X-Device-ID (wired/local) or Bearer JWT (VPN).
     private func applyAuth(_ request: inout URLRequest) async throws {
         let isWired = await transportManager.isWired
+        let isLocal = await deviceConfigStore.config.deploymentTier == "local"
 
-        if isWired {
+        if isWired || isLocal {
             let deviceId = await deviceConfigStore.config.deviceId.uuidString
             request.setValue(deviceId, forHTTPHeaderField: "X-Device-ID")
         } else {

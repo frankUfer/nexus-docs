@@ -81,7 +81,7 @@ enum AttachmentUploader {
         return nil
     }
 
-    private static func mimeType(for filename: String) -> String {
+    static func mimeType(for filename: String) -> String {
         let ext = (filename as NSString).pathExtension.lowercased()
         switch ext {
         case "jpg", "jpeg": return "image/jpeg"

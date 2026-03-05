@@ -33,6 +33,18 @@ final class PatientStore: ObservableObject {
         Task { await loadAllPatients() }
     }
 
+    /// Returns the changes directory URL for a given patient.
+    func changesDirectoryURL(for patientId: UUID) -> URL {
+        baseURL.appendingPathComponent(patientId.uuidString, isDirectory: true)
+            .appendingPathComponent("changes", isDirectory: true)
+    }
+
+    /// Returns the invoices directory URL for a given patient.
+    func invoicesDirectoryURL(for patientId: UUID) -> URL {
+        baseURL.appendingPathComponent(patientId.uuidString, isDirectory: true)
+            .appendingPathComponent("invoices", isDirectory: true)
+    }
+
     // MARK: - In-Memory (MainActor)
     
     func getPatient(by id: UUID) -> Patient? {

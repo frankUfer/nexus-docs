@@ -13,7 +13,7 @@ struct SlotEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var start: Date
     @State private var end: Date
-    private let originalID: UUID
+    private let originalSlot: AvailabilitySlot
     let onSave: (AvailabilitySlot) -> Void
     
     private var calendar: Calendar { Calendar.current }
@@ -39,7 +39,7 @@ struct SlotEditorView: View {
         self._didAuthenticate = didAuthenticate // <- Binding korrekt zuweisen
         self._start = State(initialValue: slot.start)
         self._end = State(initialValue: slot.end)
-        self.originalID = slot.id
+        self.originalSlot = slot
         self.onSave = onSave
     }
     
@@ -64,7 +64,7 @@ struct SlotEditorView: View {
                     Button(NSLocalizedString("save", comment: "Save")) {
                         authenticateIfNeeded {
                             if isValid {
-                                let updated = AvailabilitySlot(id: originalID, start: start, end: end)
+                                let updated = AvailabilitySlot(id: originalSlot.id, start: start, end: end, type: originalSlot.type, note: originalSlot.note, source: originalSlot.source)
                                 onSave(updated)
                                 dismiss()
                             }

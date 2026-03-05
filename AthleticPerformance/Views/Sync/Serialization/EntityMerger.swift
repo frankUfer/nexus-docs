@@ -18,18 +18,46 @@ enum EntityMerger {
         case .patient:
             return mergePatientDemographics(jsonData: jsonData, decoder: decoder, into: &patient)
 
-        case .session:
-            return mergeSession(jsonData: jsonData, decoder: decoder, change: change, into: &patient)
-
-        case .assessment:
-            return mergeAssessment(jsonData: jsonData, decoder: decoder, change: change, into: &patient)
-
+        // Fine-grained entity types
+        case .therapy:
+            guard let therapy = try? decoder.decode(Therapy.self, from: jsonData) else { return false }
+            return mergeTherapy(therapy, into: &patient)
+        case .diagnosis:
+            guard let diagnosis = try? decoder.decode(Diagnosis.self, from: jsonData) else { return false }
+            return mergeDiagnosis(diagnosis, into: &patient)
+        case .finding:
+            guard let finding = try? decoder.decode(Finding.self, from: jsonData) else { return false }
+            return mergeFinding(finding, into: &patient)
+        case .exercise:
+            guard let exercise = try? decoder.decode(Exercise.self, from: jsonData) else { return false }
+            return mergeExercise(exercise, into: &patient)
+        case .therapyPlan:
+            guard let plan = try? decoder.decode(TherapyPlan.self, from: jsonData) else { return false }
+            return mergeTherapyPlan(plan, into: &patient)
+        case .treatmentSession:
+            guard let session = try? decoder.decode(TreatmentSessions.self, from: jsonData) else { return false }
+            return mergeTreatmentSession(session, into: &patient)
+        case .sessionDoc:
+            guard let doc = try? decoder.decode(TherapySessionDocumentation.self, from: jsonData) else { return false }
+            return mergeSessionDoc(doc, into: &patient)
         case .invoice:
             return mergeInvoice(jsonData: jsonData, decoder: decoder, change: change, into: &patient)
 
-        case .documentMeta:
-            // Media metadata is informational; no merge needed for pull
+        case .preTreatment:
+            return mergePreTreatment(jsonData: jsonData, decoder: decoder, change: change, into: &patient)
+        case .dischargeReport:
+            return mergeDischargeReport(jsonData: jsonData, decoder: decoder, change: change, into: &patient)
+
+        // These entity types are detail records or metadata — no merge into patient.json needed
+        case .diagnosisTreatment, .clinicalObservation, .appliedTreatment,
+             .invoiceItem, .documentMeta, .changeLog:
             return true
+
+        // Legacy coarse types (for backward compat with older server data)
+        case .session:
+            return mergeSession(jsonData: jsonData, decoder: decoder, change: change, into: &patient)
+        case .assessment:
+            return mergeAssessment(jsonData: jsonData, decoder: decoder, change: change, into: &patient)
 
         default:
             return false
@@ -246,6 +274,36 @@ enum EntityMerger {
             guard var therapy = patient.therapies[tIdx] else { continue }
             if let iIdx = therapy.invoices.firstIndex(where: { $0.id == invoice.id }) {
                 therapy.invoices[iIdx] = invoice
+                patient.therapies[tIdx] = therapy
+                return true
+            }
+        }
+        return false
+    }
+
+    // MARK: - PreTreatment
+
+    private static func mergePreTreatment(jsonData: Data, decoder: JSONDecoder, change: SyncPullChange, into patient: inout Patient) -> Bool {
+        guard let preTreatment = try? decoder.decode(PreTreatmentDocumentation.self, from: jsonData) else { return false }
+        for tIdx in patient.therapies.indices {
+            guard var therapy = patient.therapies[tIdx] else { continue }
+            if therapy.preTreatment.id == preTreatment.id {
+                therapy.preTreatment = preTreatment
+                patient.therapies[tIdx] = therapy
+                return true
+            }
+        }
+        return false
+    }
+
+    // MARK: - DischargeReport
+
+    private static func mergeDischargeReport(jsonData: Data, decoder: JSONDecoder, change: SyncPullChange, into patient: inout Patient) -> Bool {
+        guard let report = try? decoder.decode(DischargeReport.self, from: jsonData) else { return false }
+        for tIdx in patient.therapies.indices {
+            guard var therapy = patient.therapies[tIdx] else { continue }
+            if therapy.dischargeReport?.id == report.id {
+                therapy.dischargeReport = report
                 patient.therapies[tIdx] = therapy
                 return true
             }

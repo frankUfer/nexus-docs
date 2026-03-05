@@ -34,6 +34,7 @@ struct AthleticsPerformanceApp: App {
 
     @State private var authManager: AuthManager?
     @State private var syncCoordinator: SyncCoordinator?
+    @State private var availabilityStore: AvailabilityStore?
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -237,11 +238,13 @@ struct AthleticsPerformanceApp: App {
         syncCoordinator = coordinator
 
         // Wire availability store if a therapist is selected
+        // Keep a strong reference so the store survives for incremental sync
         if let therapistId = AppGlobals.shared.therapistId {
             let store = AvailabilityStore(
                 therapistId: therapistId.uuidString,
                 baseDirectory: FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
             )
+            availabilityStore = store
             coordinator.wireAvailabilityStore(store)
         }
 

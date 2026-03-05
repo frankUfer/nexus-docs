@@ -101,9 +101,20 @@ final class SyncCoordinator: ObservableObject {
     // MARK: - Patient Change → Outbound Queue
 
     private func handlePatientChanged(new: Patient, old: Patient?) {
-        let changes = ChangeDetector.detectChanges(old: old, new: new, versionTracker: versionTracker)
-        guard !changes.isEmpty else { return }
-        outboundQueue.enqueueAll(changes)
+        var allChanges = ChangeDetector.detectChanges(old: old, new: new, versionTracker: versionTracker)
+
+        if let store = patientStore {
+            // Extract any new change log entries for this patient
+            let changeLogChanges = extractNewChangeLogs(for: new.id, patientStore: store)
+            allChanges.append(contentsOf: changeLogChanges)
+
+            // Extract invoices from separate files (source of truth, not therapy.invoices)
+            let invoiceChanges = extractInvoiceChanges(for: new.id, patientStore: store)
+            allChanges.append(contentsOf: invoiceChanges)
+        }
+
+        guard !allChanges.isEmpty else { return }
+        outboundQueue.enqueueAll(allChanges)
         syncStateStore.state.pendingChangeCount = outboundQueue.count
         syncStateStore.saveState()
     }
@@ -173,6 +184,20 @@ final class SyncCoordinator: ObservableObject {
         guard !patients.isEmpty else { return }
 
         var allChanges: [QueuedChange] = []
+
+        // Practice info (practice, therapists, services) — parameter data for DWH dimensions
+        let practiceEntities = EntityExtractor.extractPracticeInfo(AppGlobals.shared.practiceInfo)
+        for entity in practiceEntities {
+            allChanges.append(QueuedChange(
+                entityType: entity.entityType,
+                entityId: entity.entityId,
+                patientId: entity.patientId,
+                dataCategory: entity.dataCategory,
+                data: entity.data,
+                operation: "create"
+            ))
+        }
+
         for patient in patients {
             let entities = EntityExtractor.extractAll(from: patient)
             for entity in entities {
@@ -185,11 +210,128 @@ final class SyncCoordinator: ObservableObject {
                     operation: "create"
                 ))
             }
+
+            // Include invoices from separate files (source of truth)
+            let invoicesDir = patientStore.invoicesDirectoryURL(for: patient.id)
+            let invoiceEntities = EntityExtractor.extractInvoicesFromFiles(
+                invoicesDirectory: invoicesDir, patientId: patient.id
+            )
+            for entity in invoiceEntities {
+                allChanges.append(QueuedChange(
+                    entityType: entity.entityType,
+                    entityId: entity.entityId,
+                    patientId: entity.patientId,
+                    dataCategory: entity.dataCategory,
+                    data: entity.data,
+                    operation: "create"
+                ))
+            }
+
+            // Include all change log entries (initial sync — no marker, send everything)
+            let changesDir = patientStore.changesDirectoryURL(for: patient.id)
+            let (changeLogEntities, processedFiles) = EntityExtractor.extractChangeLogs(
+                from: changesDir, patientId: patient.id
+            )
+            for entity in changeLogEntities {
+                allChanges.append(QueuedChange(
+                    entityType: entity.entityType,
+                    entityId: entity.entityId,
+                    patientId: entity.patientId,
+                    dataCategory: entity.dataCategory,
+                    data: entity.data,
+                    operation: "create"
+                ))
+            }
+            if let lastFile = processedFiles.last {
+                syncStateStore.state.syncedChangeLogMarkers[patient.id.uuidString] = lastFile
+            }
+        }
+
+        // Availability slots — load directly from file (weak store may be nil)
+        if let therapistId = AppGlobals.shared.therapistId {
+            let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let tempStore = AvailabilityStore(therapistId: therapistId.uuidString, baseDirectory: docsDir)
+            if !tempStore.slots.isEmpty {
+                let availEntities = EntityExtractor.extractAvailability(slots: tempStore.slots, therapistId: therapistId)
+                for entity in availEntities {
+                    allChanges.append(QueuedChange(
+                        entityType: entity.entityType,
+                        entityId: entity.entityId,
+                        patientId: entity.patientId,
+                        dataCategory: entity.dataCategory,
+                        data: entity.data,
+                        operation: "create"
+                    ))
+                }
+            }
+        }
+
+        // Reference parameters (bundled JSON files for DWH dim_parameter)
+        let refEntities = EntityExtractor.extractReferenceParameters()
+        for entity in refEntities {
+            allChanges.append(QueuedChange(
+                entityType: entity.entityType,
+                entityId: entity.entityId,
+                patientId: entity.patientId,
+                dataCategory: entity.dataCategory,
+                data: entity.data,
+                operation: "create"
+            ))
         }
 
         outboundQueue.enqueueAll(allChanges)
         syncStateStore.state.pendingChangeCount = outboundQueue.count
         syncStateStore.saveState()
+    }
+
+    // MARK: - Change Log Extraction
+
+    private func extractNewChangeLogs(for patientId: UUID, patientStore: PatientStore) -> [QueuedChange] {
+        let changesDir = patientStore.changesDirectoryURL(for: patientId)
+        let marker = syncStateStore.state.syncedChangeLogMarkers[patientId.uuidString]
+
+        let (entities, processedFiles) = EntityExtractor.extractChangeLogs(
+            from: changesDir, patientId: patientId, afterFile: marker
+        )
+
+        guard !entities.isEmpty else { return [] }
+
+        if let lastFile = processedFiles.last {
+            syncStateStore.state.syncedChangeLogMarkers[patientId.uuidString] = lastFile
+        }
+
+        return entities.map { entity in
+            QueuedChange(
+                entityType: entity.entityType,
+                entityId: entity.entityId,
+                patientId: entity.patientId,
+                dataCategory: entity.dataCategory,
+                data: entity.data,
+                operation: "create"
+            )
+        }
+    }
+
+    // MARK: - Invoice Extraction
+
+    private func extractInvoiceChanges(for patientId: UUID, patientStore: PatientStore) -> [QueuedChange] {
+        let invoicesDir = patientStore.invoicesDirectoryURL(for: patientId)
+        let entities = EntityExtractor.extractInvoicesFromFiles(
+            invoicesDirectory: invoicesDir, patientId: patientId
+        )
+
+        // Enqueue all invoice entities — the outbound queue deduplicates by entityId,
+        // and the server upserts, so re-sending unchanged invoices is safe.
+        return entities.map { entity in
+            QueuedChange(
+                entityType: entity.entityType,
+                entityId: entity.entityId,
+                patientId: entity.patientId,
+                dataCategory: entity.dataCategory,
+                data: entity.data,
+                operation: versionTracker.operation(for: entity.entityId)
+            )
+        }
     }
 
     // MARK: - Push
@@ -214,6 +356,7 @@ final class SyncCoordinator: ObservableObject {
         }
 
         let manifests = computeManifests(for: pushChanges)
+        let attachmentRefs = buildAttachmentRefs(from: pushChanges)
 
         let request = SyncPushRequest(
             deviceId: deviceConfigStore.config.deviceId,
@@ -221,7 +364,7 @@ final class SyncCoordinator: ObservableObject {
             clientTimestamp: Date(),
             lastPullVersion: syncStateStore.state.lastPullVersion,
             changes: pushChanges,
-            attachments: [], // Attachments handled separately in Phase 6
+            attachments: attachmentRefs,
             manifests: manifests.isEmpty ? nil : manifests
         )
 
@@ -355,6 +498,16 @@ final class SyncCoordinator: ObservableObject {
                 applyAvailabilityChange(change)
                 return
             }
+            // Detail entity types that don't need merging into patient.json
+            // (they are extracted from the patient structure for the DWH but
+            // don't exist as standalone entities on the iPad)
+            switch change.entityType {
+            case .clinicalObservation, .appliedTreatment, .diagnosisTreatment,
+                 .invoiceItem, .changeLog, .documentMeta:
+                return
+            default:
+                break
+            }
             guard let patientStore else { return }
             _ = await PatientSyncHandler.apply(change: change, patientStore: patientStore)
         }
@@ -412,6 +565,36 @@ final class SyncCoordinator: ObservableObject {
                 contentChecksum: checksum
             )
         }
+    }
+
+    /// Builds SyncAttachmentRef entries for document_meta entities that have files on disk.
+    private func buildAttachmentRefs(from changes: [SyncPushChange]) -> [SyncAttachmentRef] {
+        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let fm = FileManager.default
+        var refs: [SyncAttachmentRef] = []
+
+        for change in changes where change.entityType == .documentMeta {
+            let data = change.data.mapValues(\.value)
+            guard let filename = data["filename"] as? String,
+                  let relativePath = data["relativePath"] as? String else { continue }
+
+            let fileURL = documentsURL.appendingPathComponent(relativePath)
+            guard fm.fileExists(atPath: fileURL.path),
+                  let fileData = try? Data(contentsOf: fileURL) else { continue }
+
+            let contentType = AttachmentUploader.mimeType(for: filename)
+            let checksum = AttachmentUploader.sha256(data: fileData)
+
+            refs.append(SyncAttachmentRef(
+                entityId: change.entityId,
+                filename: filename,
+                contentType: contentType,
+                sizeBytes: fileData.count,
+                checksum: checksum
+            ))
+        }
+
+        return refs
     }
 
     private func computeContentChecksum(for changes: [SyncPushChange]) -> String {

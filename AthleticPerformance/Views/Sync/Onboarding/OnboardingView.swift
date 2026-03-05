@@ -10,6 +10,7 @@ struct OnboardingView: View {
 
     @StateObject private var transportManager: TransportManager
     @State private var code = ""
+    @State private var manualServerURL = "https://192.168.178.2:8443"
     @State private var isClaimInProgress = false
     @State private var errorMessage: String?
     @State private var isComplete = false
@@ -30,6 +31,7 @@ struct OnboardingView: View {
             VStack(spacing: 32) {
                 headerSection
                 connectionStatusSection
+                manualServerSection
                 codeEntrySection
                 if let error = errorMessage {
                     errorSection(error)
@@ -153,6 +155,48 @@ struct OnboardingView: View {
         return "Connect via network cable to continue"
     }
 
+    // MARK: - Manual Server
+
+    private var manualServerSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Server URL (if Bonjour fails)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack {
+                TextField("https://server-ip:8443", text: $manualServerURL)
+                    .font(.body.monospaced())
+                    .textFieldStyle(.roundedBorder)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .keyboardType(.URL)
+
+                Button("Connect") {
+                    applyManualServer()
+                }
+                .buttonStyle(.bordered)
+                .disabled(manualServerURL.isEmpty)
+            }
+        }
+        .padding()
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func applyManualServer() {
+        var url = manualServerURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !url.hasPrefix("http") {
+            url = "https://\(url)"
+        }
+        guard URL(string: url) != nil else {
+            errorMessage = "Invalid URL"
+            return
+        }
+        // Set serverURL on config so TransportManager.manualServer() finds it
+        deviceConfigStore.config.serverURL = url
+        // Trigger reachability check against the manual URL
+        Task { await transportManager.checkReachability() }
+    }
+
     // MARK: - Code Entry
 
     private var codeEntrySection: some View {
@@ -181,8 +225,12 @@ struct OnboardingView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .disabled(code.count != 6 || !transportManager.isServerReachable || isClaimInProgress)
+            .disabled(code.count != 6 || !canActivate || isClaimInProgress)
         }
+    }
+
+    private var canActivate: Bool {
+        transportManager.isServerReachable
     }
 
     // MARK: - Error
