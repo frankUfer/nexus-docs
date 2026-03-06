@@ -172,6 +172,10 @@ final class SyncCoordinator: ObservableObject {
         if syncStateStore.state.lastPushAt == nil {
             outboundQueue.clear()
             enqueueAllForInitialSync()
+        } else {
+            // Always re-push practice info (small payload, server upserts)
+            // to ensure latest fields (e.g. startAddress) reach the DWH.
+            enqueuePracticeInfo()
         }
 
         // Disconnect patient change callback during sync to prevent
@@ -186,6 +190,25 @@ final class SyncCoordinator: ObservableObject {
         syncStateStore.state.lastSyncAt = Date()
         syncStateStore.state.pendingChangeCount = outboundQueue.count
         syncStateStore.saveState()
+    }
+
+    /// Re-enqueue practice info so updated fields reach the server.
+    private func enqueuePracticeInfo() {
+        let practiceEntities = EntityExtractor.extractPracticeInfo(AppGlobals.shared.practiceInfo)
+        var changes: [QueuedChange] = []
+        for entity in practiceEntities {
+            changes.append(QueuedChange(
+                entityType: entity.entityType,
+                entityId: entity.entityId,
+                patientId: entity.patientId,
+                dataCategory: entity.dataCategory,
+                data: entity.data,
+                operation: "update"
+            ))
+        }
+        if !changes.isEmpty {
+            outboundQueue.enqueueAll(changes)
+        }
     }
 
     /// Enqueues all existing patients for initial sync (first-time push).
