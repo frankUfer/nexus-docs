@@ -361,6 +361,7 @@ final class SyncCoordinator: ObservableObject {
         var totalErrors = 0
         var totalUploaded = 0
         var totalUploadFailed = 0
+        var lastBatchError: String?
         let batchCount = (allItems.count + pushBatchSize - 1) / pushBatchSize
 
         for batchIndex in 0..<batchCount {
@@ -438,8 +439,9 @@ final class SyncCoordinator: ObservableObject {
                 }
 
             } catch {
-                status = .error("Push failed: \(error.localizedDescription)")
-                return
+                // Log the error but continue with remaining batches
+                totalErrors += batchItems.count
+                lastBatchError = error.localizedDescription
             }
         }
 
@@ -448,12 +450,17 @@ final class SyncCoordinator: ObservableObject {
         syncStateStore.state.pendingChangeCount = outboundQueue.count
         syncStateStore.saveState()
 
+        var result = "Push: \(totalAccepted) accepted, \(totalErrors) errors"
         if totalUploaded + totalUploadFailed > 0 {
-            lastSyncResult = "Push: \(totalAccepted) accepted, \(totalErrors) errors | Uploads: \(totalUploaded) ok, \(totalUploadFailed) failed"
-        } else {
-            lastSyncResult = "Push: \(totalAccepted) accepted, \(totalErrors) errors"
+            result += " | Uploads: \(totalUploaded) ok, \(totalUploadFailed) failed"
         }
-        status = .idle
+        lastSyncResult = result
+
+        if let batchError = lastBatchError {
+            status = .error("Push partially failed: \(batchError)")
+        } else {
+            status = .idle
+        }
     }
 
     // MARK: - Pull
