@@ -15,7 +15,7 @@ enum ChangeDetector {
         let oldEntitiesMap: [UUID: EntityExtractor.ExtractedEntity]
         if let old = old {
             let oldEntities = EntityExtractor.extractAll(from: old)
-            oldEntitiesMap = Dictionary(uniqueKeysWithValues: oldEntities.map { ($0.entityId, $0) })
+            oldEntitiesMap = Dictionary(oldEntities.map { ($0.entityId, $0) }, uniquingKeysWith: { _, last in last })
         } else {
             oldEntitiesMap = [:]
         }
@@ -67,7 +67,7 @@ enum ChangeDetector {
         let oldEntitiesMap: [UUID: EntityExtractor.ExtractedEntity]
         if let old = old {
             let oldEntities = EntityExtractor.extractAvailability(slots: old, therapistId: therapistId)
-            oldEntitiesMap = Dictionary(uniqueKeysWithValues: oldEntities.map { ($0.entityId, $0) })
+            oldEntitiesMap = Dictionary(oldEntities.map { ($0.entityId, $0) }, uniquingKeysWith: { _, last in last })
         } else {
             oldEntitiesMap = [:]
         }
