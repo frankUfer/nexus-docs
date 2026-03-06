@@ -100,6 +100,9 @@ enum EntityExtractor {
             // therapy.invoices is legacy and may be stale/empty.
         }
 
+        // Standalone PDFs (invoice PDFs, contracts) — not tracked in MediaFile arrays
+        entities.append(contentsOf: extractStandalonePDFs(for: patient))
+
         return entities
     }
 
@@ -900,6 +903,79 @@ enum EntityExtractor {
             data: enriched
         )
     }
+
+    // MARK: - Standalone PDF extraction (invoices, contracts)
+
+    /// Scans a patient's directory for standalone PDF files (invoices, contracts)
+    /// that are not tracked as MediaFile objects and creates document_meta entities for them.
+    static func extractStandalonePDFs(for patient: Patient) -> [ExtractedEntity] {
+        let fm = FileManager.default
+        guard let documentsURL = fm.urls(for: .documentDirectory, in: .userDomainMask).first else { return [] }
+        let patientDir = documentsURL
+            .appendingPathComponent("patients")
+            .appendingPathComponent(patient.id.uuidString)
+
+        var entities: [ExtractedEntity] = []
+
+        // 1. Invoice PDFs: patients/{uuid}/invoices/*.pdf
+        let invoiceDir = patientDir.appendingPathComponent("invoices")
+        if let files = try? fm.contentsOfDirectory(at: invoiceDir, includingPropertiesForKeys: [.creationDateKey]) {
+            for file in files where file.pathExtension.lowercased() == "pdf" {
+                let relativePath = "patients/\(patient.id.uuidString)/invoices/\(file.lastPathComponent)"
+                let entityId = deterministicUUID(from: relativePath)
+                let date = (try? file.resourceValues(forKeys: [.creationDateKey]))?.creationDate ?? Date()
+
+                let data: [String: AnyCodable] = [
+                    "id": AnyCodable(entityId.uuidString),
+                    "filename": AnyCodable(file.lastPathComponent),
+                    "fileType": AnyCodable("pdf"),
+                    "date": AnyCodable(ISO8601DateFormatter.syncFormatter.string(from: date)),
+                    "relativePath": AnyCodable(relativePath),
+                    "documentCategory": AnyCodable("invoice"),
+                    "patientId": AnyCodable(patient.id.uuidString),
+                ]
+                entities.append(ExtractedEntity(
+                    entityType: .documentMeta,
+                    entityId: entityId,
+                    patientId: patient.id,
+                    dataCategory: .transactionalData,
+                    data: data
+                ))
+            }
+        }
+
+        // 2. Contract PDFs: patients/{uuid}/contract*.pdf (excluding drafts)
+        if let files = try? fm.contentsOfDirectory(at: patientDir, includingPropertiesForKeys: [.creationDateKey]) {
+            for file in files where file.pathExtension.lowercased() == "pdf"
+                && file.lastPathComponent.hasPrefix("contract")
+                && !file.lastPathComponent.contains("draft") {
+                let relativePath = "patients/\(patient.id.uuidString)/\(file.lastPathComponent)"
+                let entityId = deterministicUUID(from: relativePath)
+                let date = (try? file.resourceValues(forKeys: [.creationDateKey]))?.creationDate ?? Date()
+
+                let data: [String: AnyCodable] = [
+                    "id": AnyCodable(entityId.uuidString),
+                    "filename": AnyCodable(file.lastPathComponent),
+                    "fileType": AnyCodable("pdf"),
+                    "date": AnyCodable(ISO8601DateFormatter.syncFormatter.string(from: date)),
+                    "relativePath": AnyCodable(relativePath),
+                    "documentCategory": AnyCodable("contract"),
+                    "patientId": AnyCodable(patient.id.uuidString),
+                ]
+                entities.append(ExtractedEntity(
+                    entityType: .documentMeta,
+                    entityId: entityId,
+                    patientId: patient.id,
+                    dataCategory: .transactionalData,
+                    data: data
+                ))
+            }
+        }
+
+        return entities
+    }
+
+
 
     // MARK: - Helper
 
