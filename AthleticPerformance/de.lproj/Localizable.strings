@@ -772,11 +772,9 @@
 "syncLastSync" = "Letzte Synchronisation";
 "syncLastSyncTime" = "Letzte Sync";
 "syncNever" = "Nie";
-"syncLastPush" = "Letzter Push";
-"syncPullVersion" = "Pull-Version";
 "syncPendingChanges" = "Ausstehende Änderungen";
 "syncQueuedChanges" = "Wartende Änderungen";
-"syncRecentConflicts" = "Letzte Konflikte";
+"syncUpToDate" = "Alles ist auf dem neuesten Stand";
 "syncIdle" = "Bereit";
 "syncSyncing" = "Synchronisiere...";
 "syncStartSync" = "Synchronisation starten";

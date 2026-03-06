@@ -61,12 +61,15 @@ final class SyncCoordinator: ObservableObject {
     func startAutoSync() {
         transportManager.startMonitoring()
 
-        // Watch connectivity + queue count — push when server reachable and queue non-empty
+        // Watch connectivity + queue count — push when server reachable and queue non-empty.
+        // Only auto-push after the first manual sync has completed (lastPushAt != nil).
+        // The initial bulk sync (thousands of entities) must be user-initiated.
         transportManager.$isServerReachable
             .combineLatest(outboundQueue.$items)
             .debounce(for: .seconds(2), scheduler: RunLoop.main)
             .sink { [weak self] (reachable, items) in
-                guard let self, reachable, !items.isEmpty, self.status == .idle else { return }
+                guard let self, reachable, !items.isEmpty, self.status == .idle,
+                      self.syncStateStore.state.lastPushAt != nil else { return }
                 Task { await self.pushChanges() }
             }
             .store(in: &cancellables)
@@ -91,7 +94,8 @@ final class SyncCoordinator: ObservableObject {
 
     /// Attempt a final push when the app goes to background.
     func pushOnBackground() {
-        guard transportManager.isServerReachable, !outboundQueue.isEmpty else { return }
+        guard transportManager.isServerReachable, !outboundQueue.isEmpty,
+              syncStateStore.state.lastPushAt != nil else { return }
         autoSyncTask = Task {
             await pushChanges()
         }
@@ -164,13 +168,21 @@ final class SyncCoordinator: ObservableObject {
     // MARK: - Full Sync
 
     func fullSync() async {
-        // First-time sync: enqueue all existing data if nothing has ever been pushed
-        if syncStateStore.state.lastPushAt == nil && outboundQueue.isEmpty {
+        // First-time sync: clear any stale queue and rebuild fresh
+        if syncStateStore.state.lastPushAt == nil {
+            outboundQueue.clear()
             enqueueAllForInitialSync()
         }
 
+        // Disconnect patient change callback during sync to prevent
+        // async operations (geocoding, etc.) from re-enqueuing items.
+        let savedCallback = patientStore?.onPatientChanged
+        patientStore?.onPatientChanged = nil
+
         await pushChanges()
         await pullChanges()
+
+        patientStore?.onPatientChanged = savedCallback
         syncStateStore.state.lastSyncAt = Date()
         syncStateStore.state.pendingChangeCount = outboundQueue.count
         syncStateStore.saveState()
@@ -336,70 +348,71 @@ final class SyncCoordinator: ObservableObject {
 
     // MARK: - Push
 
+    private let pushBatchSize = 500
+
     func pushChanges() async {
-        let items = outboundQueue.items
-        guard !items.isEmpty else { return }
+        let allItems = outboundQueue.items
+        guard !allItems.isEmpty else { return }
 
         status = .syncing
 
-        let pushChanges: [SyncPushChange] = items.map { item in
-            SyncPushChange(
-                dataCategory: item.dataCategory,
-                entityType: item.entityType,
-                entityId: item.entityId,
-                patientId: item.patientId,
-                operation: item.operation,
-                version: versionTracker.version(for: item.entityId),
-                data: item.data,
-                clientModifiedAt: item.queuedAt
-            )
-        }
+        var totalAccepted = 0
+        var totalConflicts = 0
+        var totalErrors = 0
+        var totalUploaded = 0
+        var totalUploadFailed = 0
+        let batchCount = (allItems.count + pushBatchSize - 1) / pushBatchSize
 
-        let manifests = computeManifests(for: pushChanges)
-        let attachmentRefs = buildAttachmentRefs(from: pushChanges)
+        for batchIndex in 0..<batchCount {
+            let start = batchIndex * pushBatchSize
+            let end = min(start + pushBatchSize, allItems.count)
+            let batchItems = Array(allItems[start..<end])
 
-        let request = SyncPushRequest(
-            deviceId: deviceConfigStore.config.deviceId,
-            syncId: UUID(),
-            clientTimestamp: Date(),
-            lastPullVersion: syncStateStore.state.lastPullVersion,
-            changes: pushChanges,
-            attachments: attachmentRefs,
-            manifests: manifests.isEmpty ? nil : manifests
-        )
-
-        do {
-            let response = try await client.push(request)
-
-            // Process accepted changes — update version tracker, remove from queue
-            let acceptedIds = Set(response.accepted.map(\.entityId))
-            for accepted in response.accepted {
-                versionTracker.updateVersion(
-                    entityId: accepted.entityId,
-                    entityType: accepted.entityType,
-                    serverVersion: accepted.serverVersion
+            let pushChanges: [SyncPushChange] = batchItems.map { item in
+                SyncPushChange(
+                    dataCategory: item.dataCategory,
+                    entityType: item.entityType,
+                    entityId: item.entityId,
+                    patientId: item.patientId,
+                    operation: item.operation,
+                    version: versionTracker.version(for: item.entityId),
+                    data: item.data,
+                    clientModifiedAt: item.queuedAt
                 )
             }
-            outboundQueue.markSynced(entityIds: acceptedIds)
 
-            // Process conflicts — log them
-            for conflict in response.conflicts {
-                syncStateStore.addConflict(ConflictLogEntry(
-                    date: Date(),
-                    entityType: conflict.entityType,
-                    entityId: conflict.entityId,
-                    resolution: conflict.resolution,
-                    serverData: conflict.serverData,
-                    clientData: conflict.clientData
-                ))
+            let manifests = computeManifests(for: pushChanges)
+            let (attachmentRefs, attachmentPaths) = buildAttachmentRefs(from: pushChanges)
 
-                // For server_wins conflicts (parameters), apply server data locally
-                if conflict.resolution == "server_wins" {
-                    applyServerWinsConflict(conflict)
+            let request = SyncPushRequest(
+                deviceId: deviceConfigStore.config.deviceId,
+                syncId: UUID(),
+                clientTimestamp: Date(),
+                lastPullVersion: syncStateStore.state.lastPullVersion,
+                changes: pushChanges,
+                attachments: attachmentRefs,
+                manifests: manifests.isEmpty ? nil : manifests
+            )
+
+            do {
+                let response = try await client.push(request)
+
+                // Process accepted changes
+                let acceptedIds = Set(response.accepted.map(\.entityId))
+                for accepted in response.accepted {
+                    versionTracker.updateVersion(
+                        entityId: accepted.entityId,
+                        entityType: accepted.entityType,
+                        serverVersion: accepted.serverVersion
+                    )
                 }
+                outboundQueue.markSynced(entityIds: acceptedIds)
 
-                // For client_wins, the server accepted our data — treat as accepted
-                if conflict.resolution == "client_wins" {
+                // Process conflicts — remove from queue regardless of resolution
+                for conflict in response.conflicts {
+                    if conflict.resolution == "server_wins" {
+                        applyServerWinsConflict(conflict)
+                    }
                     versionTracker.updateVersion(
                         entityId: conflict.entityId,
                         entityType: conflict.entityType,
@@ -407,32 +420,40 @@ final class SyncCoordinator: ObservableObject {
                     )
                     outboundQueue.markSynced(entityIds: [conflict.entityId])
                 }
+
+                // Re-queue errors for retry
+                let errorIds = Set(response.errors.map(\.entityId))
+                let failedItems = batchItems.filter { errorIds.contains($0.entityId) }
+                outboundQueue.requeue(failedItems)
+
+                totalAccepted += response.accepted.count
+                totalConflicts += response.conflicts.count
+                totalErrors += response.errors.count
+
+                // Upload pending attachments per batch
+                if !response.pendingUploads.isEmpty {
+                    let uploadResults = await AttachmentUploader.uploadPending(response.pendingUploads, relativePaths: attachmentPaths, client: client)
+                    totalUploaded += uploadResults.filter(\.success).count
+                    totalUploadFailed += uploadResults.filter({ !$0.success }).count
+                }
+
+            } catch {
+                status = .error("Push failed: \(error.localizedDescription)")
+                return
             }
-
-            // Process errors — re-queue for retry
-            let errorIds = Set(response.errors.map(\.entityId))
-            let failedItems = items.filter { errorIds.contains($0.entityId) }
-            outboundQueue.requeue(failedItems)
-
-            // Update state
-            syncStateStore.state.lastPushAt = Date()
-            syncStateStore.state.pendingChangeCount = outboundQueue.count
-            syncStateStore.saveState()
-
-            // Upload pending attachments
-            if !response.pendingUploads.isEmpty {
-                let uploadResults = await AttachmentUploader.uploadPending(response.pendingUploads, client: client)
-                let uploaded = uploadResults.filter(\.success).count
-                let failed = uploadResults.count - uploaded
-                lastSyncResult = "Push: \(response.accepted.count) accepted, \(response.conflicts.count) conflicts, \(response.errors.count) errors | Uploads: \(uploaded) ok, \(failed) failed"
-            } else {
-                lastSyncResult = "Push: \(response.accepted.count) accepted, \(response.conflicts.count) conflicts, \(response.errors.count) errors"
-            }
-            status = .idle
-
-        } catch {
-            status = .error("Push failed: \(error.localizedDescription)")
         }
+
+        // Update state after all batches
+        syncStateStore.state.lastPushAt = Date()
+        syncStateStore.state.pendingChangeCount = outboundQueue.count
+        syncStateStore.saveState()
+
+        if totalUploaded + totalUploadFailed > 0 {
+            lastSyncResult = "Push: \(totalAccepted) accepted, \(totalErrors) errors | Uploads: \(totalUploaded) ok, \(totalUploadFailed) failed"
+        } else {
+            lastSyncResult = "Push: \(totalAccepted) accepted, \(totalErrors) errors"
+        }
+        status = .idle
     }
 
     // MARK: - Pull
@@ -476,11 +497,18 @@ final class SyncCoordinator: ObservableObject {
                 }
             } while true
 
-            let pullInfo = "Pull: \(totalChanges) changes applied"
-            if let existing = lastSyncResult {
-                lastSyncResult = existing + " | " + pullInfo
-            } else {
-                lastSyncResult = pullInfo
+            if totalChanges > 0 {
+                let pullInfo = "\(totalChanges) received"
+                if let existing = lastSyncResult {
+                    lastSyncResult = existing + ", " + pullInfo
+                } else {
+                    lastSyncResult = pullInfo
+                }
+            }
+
+            // If nothing happened at all, set a simple completion message
+            if lastSyncResult == nil {
+                lastSyncResult = "up_to_date"
             }
             patientStore?.onPatientChanged = savedCallback
             status = .idle
@@ -575,10 +603,12 @@ final class SyncCoordinator: ObservableObject {
     }
 
     /// Builds SyncAttachmentRef entries for document_meta entities that have files on disk.
-    private func buildAttachmentRefs(from changes: [SyncPushChange]) -> [SyncAttachmentRef] {
+    /// Returns refs and a mapping of entityId → relativePath for the uploader.
+    private func buildAttachmentRefs(from changes: [SyncPushChange]) -> ([SyncAttachmentRef], [UUID: String]) {
         let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let fm = FileManager.default
         var refs: [SyncAttachmentRef] = []
+        var paths: [UUID: String] = [:]
 
         for change in changes where change.entityType == .documentMeta {
             let data = change.data.mapValues(\.value)
@@ -599,9 +629,10 @@ final class SyncCoordinator: ObservableObject {
                 sizeBytes: fileData.count,
                 checksum: checksum
             ))
+            paths[change.entityId] = relativePath
         }
 
-        return refs
+        return (refs, paths)
     }
 
     private func computeContentChecksum(for changes: [SyncPushChange]) -> String {

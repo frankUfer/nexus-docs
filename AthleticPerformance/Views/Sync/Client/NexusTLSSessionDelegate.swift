@@ -13,7 +13,6 @@ final class NexusTLSSessionDelegate: NSObject, URLSessionDelegate {
     override init() {
         trustedCACert = Self.loadCACertificate()
         super.init()
-        print("[NexusTLS] init — cert loaded: \(trustedCACert != nil)")
     }
 
     /// Load the CA cert: try Documents/resources/tls/ first, fall back to app bundle.
@@ -23,23 +22,14 @@ final class NexusTLSSessionDelegate: NSObject, URLSessionDelegate {
             let tlsDir = docs.appendingPathComponent("resources/tls")
             let docURL = tlsDir.appendingPathComponent("nexus-ca-cert.txt")
             if let cert = loadPEM(from: docURL) {
-                print("[NexusTLS] loaded from Documents: \(docURL.path)")
                 return cert
-            } else {
-                print("[NexusTLS] not found in Documents: \(docURL.path)")
             }
         }
 
-        // 2) Bundle fallback (same pattern as loadParameterList)
-        if let url = Bundle.main.url(forResource: "nexus-ca-cert", withExtension: "txt") {
-            if let cert = loadPEM(from: url) {
-                print("[NexusTLS] loaded from bundle: \(url.path)")
-                return cert
-            } else {
-                print("[NexusTLS] bundle file found but PEM parse failed: \(url.path)")
-            }
-        } else {
-            print("[NexusTLS] not found in bundle")
+        // 2) Bundle fallback
+        if let url = Bundle.main.url(forResource: "nexus-ca-cert", withExtension: "txt"),
+           let cert = loadPEM(from: url) {
+            return cert
         }
 
         print("[NexusTLS] WARNING — no CA cert loaded")
@@ -63,26 +53,20 @@ final class NexusTLSSessionDelegate: NSObject, URLSessionDelegate {
         didReceive challenge: URLAuthenticationChallenge,
         completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
     ) {
-        print("[NexusTLS] delegate called — method: \(challenge.protectionSpace.authenticationMethod), cert loaded: \(trustedCACert != nil)")
-
         guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
               let serverTrust = challenge.protectionSpace.serverTrust,
               let caCert = trustedCACert else {
-            print("[NexusTLS] falling through to default handling (cert nil: \(trustedCACert == nil))")
             completionHandler(.performDefaultHandling, nil)
             return
         }
 
-        // Set our CA as the only trusted anchor
         SecTrustSetAnchorCertificates(serverTrust, [caCert] as CFArray)
         SecTrustSetAnchorCertificatesOnly(serverTrust, true)
 
         var error: CFError?
         if SecTrustEvaluateWithError(serverTrust, &error) {
-            print("[NexusTLS] trust evaluation PASSED")
             completionHandler(.useCredential, URLCredential(trust: serverTrust))
         } else {
-            print("[NexusTLS] trust evaluation FAILED: \(error?.localizedDescription ?? "unknown")")
             completionHandler(.performDefaultHandling, nil)
         }
     }

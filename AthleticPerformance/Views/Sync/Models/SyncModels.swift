@@ -213,12 +213,12 @@ struct SyncErrorInfo: Codable {
 struct SyncPendingUpload: Codable {
     let entityId: UUID
     let filename: String
-    let uploadUrl: String
+    let uploadToken: String
 
     enum CodingKeys: String, CodingKey {
         case entityId = "entity_id"
         case filename
-        case uploadUrl = "upload_url"
+        case uploadToken = "upload_token"
     }
 }
 

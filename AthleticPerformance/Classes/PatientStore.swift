@@ -130,21 +130,8 @@ final class PatientStore: ObservableObject {
         let snapshot = newValue
         
         if waitUntilSaved {
-//            if !changes.isEmpty {
-//                print("💾 [updatePatient] Änderungen erkannt für Patient \(snapshot.fullName):")
-//                for ch in changes {
-//                    print("   ▪️ \(ch.path)")
-//                    print("     alt: \(String(describing: ch.oldValue))")
-//                    print("     neu: \(String(describing: ch.newValue))")
-//                }
-//                print("   → \(changes.count) Änderungen werden synchron gespeichert…")
-//            } else {
-//                print("💾 [updatePatient] Keine Änderungen für \(snapshot.fullName)")
-//            }
-
             writeChangeLogSync(changes, patientId: snapshot.id, baseURL: baseURL)
             savePatientSync(snapshot, baseURL: baseURL)
-            //print("✅ [updatePatient] Patient synchron gespeichert: \(snapshot.fullName) (\(snapshot.id))")
 
             // Notify sync system
             onPatientChanged?(newValue, oldDisk)
@@ -259,7 +246,6 @@ final class PatientStore: ObservableObject {
 
                 return result.sorted { $0.lastname.localizedCaseInsensitiveCompare($1.lastname) == .orderedAscending }
             } catch {
-                //print("⚠️ loadAllPatients() Fehler: \(error)")
                 return []
             }
         }.value
@@ -275,7 +261,6 @@ final class PatientStore: ObservableObject {
             let file = try JSONDecoder().decode(PatientFile.self, from: data)
             return file.patient
         } catch {
-            //print("⚠️ loadPatientSync Fehler \(id): \(error)")
             return nil
         }
     }
@@ -348,7 +333,6 @@ final class PatientStore: ObservableObject {
             let data = try enc.encode(file)
             try data.write(to: fileURL, options: [.atomic])
         } catch {
-            //print("❌ Speichern fehlgeschlagen für \(patient.fullName): \(error)")
         }
     }
 
@@ -359,7 +343,6 @@ final class PatientStore: ObservableObject {
             let folder = baseURL.appendingPathComponent(patientId.uuidString, isDirectory: true)
             do { if fm.fileExists(atPath: folder.path) { try fm.removeItem(at: folder) } }
             catch {
-                //print("⚠️ Löschen fehlgeschlagen \(patientId): \(error)")
             }
         }.value
     }
@@ -405,7 +388,6 @@ final class PatientStore: ObservableObject {
             let data = try enc.encode(log)
             try data.write(to: fileURL, options: [.atomic])
         } catch {
-            //print("❌ ChangeLog schreiben fehlgeschlagen: \(error)")
         }
     }
 }

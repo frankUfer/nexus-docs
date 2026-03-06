@@ -55,6 +55,11 @@ final class OutboundQueue: ObservableObject {
         save()
     }
 
+    func clear() {
+        items.removeAll()
+        save()
+    }
+
     func dequeueAll() -> [QueuedChange] {
         let all = items
         items.removeAll()

@@ -13,16 +13,24 @@ enum AttachmentUploader {
     }
 
     /// Uploads all pending attachments from a push response.
+    /// - Parameter relativePaths: entityId → relativePath mapping from buildAttachmentRefs
     static func uploadPending(
         _ pendingUploads: [SyncPendingUpload],
+        relativePaths: [UUID: String],
         client: NexusSyncClient
     ) async -> [UploadResult] {
         let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         var results: [UploadResult] = []
 
         for pending in pendingUploads {
-            // Find the file on disk — search in patients/*/media/
-            let fileURL = findMediaFile(filename: pending.filename, documentsURL: documentsURL)
+            // Use the known relativePath from the push; fall back to search
+            let fileURL: URL?
+            if let path = relativePaths[pending.entityId] {
+                let candidate = documentsURL.appendingPathComponent(path)
+                fileURL = FileManager.default.fileExists(atPath: candidate.path) ? candidate : nil
+            } else {
+                fileURL = findMediaFile(filename: pending.filename, documentsURL: documentsURL)
+            }
 
             guard let fileURL, let fileData = try? Data(contentsOf: fileURL) else {
                 results.append(UploadResult(entityId: pending.entityId, filename: pending.filename, success: false))
@@ -33,7 +41,7 @@ enum AttachmentUploader {
 
             do {
                 let response = try await client.upload(
-                    token: pending.uploadUrl,
+                    token: pending.uploadToken,
                     fileData: fileData,
                     filename: pending.filename,
                     contentType: contentType
@@ -71,10 +79,22 @@ enum AttachmentUploader {
         }
 
         for dir in patientDirs {
+            // Search media/ directly under patient dir
             let mediaDir = dir.appendingPathComponent("media", isDirectory: true)
             let candidate = mediaDir.appendingPathComponent(filename)
             if fm.fileExists(atPath: candidate.path) {
                 return candidate
+            }
+
+            // Search media/ under therapy subdirectories (patients/{uuid}/therapy_{uuid}/media/)
+            guard let subdirs = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else {
+                continue
+            }
+            for subdir in subdirs {
+                let nestedMedia = subdir.appendingPathComponent("media", isDirectory: true).appendingPathComponent(filename)
+                if fm.fileExists(atPath: nestedMedia.path) {
+                    return nestedMedia
+                }
             }
         }
 

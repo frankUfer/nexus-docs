@@ -11,6 +11,8 @@ struct SyncStatusView: View {
     @State private var isTesting = false
     @State private var testResult: String?
     @State private var showResetConfirmation = false
+    @State private var toastMessage: String?
+    @State private var toastIsSuccess = true
 
     var body: some View {
         List {
@@ -24,10 +26,6 @@ struct SyncStatusView: View {
 
             pendingChangesSection
 
-            if !syncStateStore.conflictLog.isEmpty {
-                conflictsSection
-            }
-
             connectionTestSection
 
             authSection
@@ -36,6 +34,26 @@ struct SyncStatusView: View {
                 resetSection
             }
         }
+        .overlay(alignment: .top) {
+            if let message = toastMessage {
+                HStack(spacing: 8) {
+                    Image(systemName: toastIsSuccess ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                    Text(message)
+                }
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(
+                    Capsule()
+                        .fill(toastIsSuccess ? Color.green : Color.orange)
+                        .shadow(radius: 4, y: 2)
+                )
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: toastMessage)
         .navigationTitle(NSLocalizedString("syncSynchronisation", comment: "Synchronisation"))
         .alert(
             NSLocalizedString("syncResetConfirmTitle", comment: "Reset provisioning?"),
@@ -89,6 +107,7 @@ struct SyncStatusView: View {
                 Task {
                     await syncCoordinator.fullSync()
                     isSyncing = false
+                    showSyncToast()
                 }
             } label: {
                 Label(NSLocalizedString("syncStartSync", comment: "Start Sync"),
@@ -98,16 +117,57 @@ struct SyncStatusView: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(isSyncing)
-
-            if let result = syncCoordinator.lastSyncResult {
-                GroupBox {
-                    Text(result)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
         }
+    }
+
+    private func showSyncToast() {
+        guard let result = syncCoordinator.lastSyncResult else { return }
+        let hasErrors = result.contains("error") && !result.contains("0 errors")
+        toastIsSuccess = !hasErrors
+        toastMessage = formatSyncResult(result)
+
+        // Auto-dismiss after 4 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+            withAnimation { toastMessage = nil }
+        }
+    }
+
+    private func formatSyncResult(_ raw: String) -> String {
+        if raw == "up_to_date" {
+            return NSLocalizedString("syncUpToDate", comment: "Everything is up to date")
+        }
+
+        var parts: [String] = []
+
+        if let match = raw.range(of: #"(\d+) accepted"#, options: .regularExpression) {
+            let count = raw[match].split(separator: " ").first ?? "0"
+            if count != "0" { parts.append("\(count) synced") }
+        }
+
+        if let match = raw.range(of: #"(\d+) received"#, options: .regularExpression) {
+            let count = raw[match].split(separator: " ").first ?? "0"
+            if count != "0" { parts.append("\(count) received") }
+        }
+
+        if let match = raw.range(of: #"(\d+) ok"#, options: .regularExpression) {
+            let count = raw[match].split(separator: " ").first ?? "0"
+            if count != "0" { parts.append("\(count) uploaded") }
+        }
+
+        if let match = raw.range(of: #"(\d+) errors"#, options: .regularExpression) {
+            let count = raw[match].split(separator: " ").first ?? "0"
+            if count != "0" { parts.append("\(count) errors") }
+        }
+
+        if let match = raw.range(of: #"(\d+) failed"#, options: .regularExpression) {
+            let count = raw[match].split(separator: " ").first ?? "0"
+            if count != "0" { parts.append("\(count) uploads failed") }
+        }
+
+        if parts.isEmpty {
+            return NSLocalizedString("syncUpToDate", comment: "Everything is up to date")
+        }
+        return parts.joined(separator: " · ")
     }
 
     // MARK: - Last Sync
@@ -125,25 +185,6 @@ struct SyncStatusView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-
-            HStack {
-                Text(NSLocalizedString("syncLastPush", comment: "Last push"))
-                Spacer()
-                if let lastPush = syncStateStore.state.lastPushAt {
-                    Text(lastPush, style: .relative)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text(NSLocalizedString("syncNever", comment: "Never"))
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            HStack {
-                Text(NSLocalizedString("syncPullVersion", comment: "Pull version"))
-                Spacer()
-                Text("\(syncStateStore.state.lastPullVersion)")
-                    .foregroundStyle(.secondary)
-            }
         }
     }
 
@@ -156,31 +197,6 @@ struct SyncStatusView: View {
                 Spacer()
                 Text("\(syncCoordinator.outboundQueue.count)")
                     .foregroundStyle(syncCoordinator.outboundQueue.isEmpty ? Color.secondary : Color.orange)
-            }
-        }
-    }
-
-    // MARK: - Conflicts
-
-    private var conflictsSection: some View {
-        Section(NSLocalizedString("syncRecentConflicts", comment: "Recent Conflicts")) {
-            ForEach(syncStateStore.conflictLog.suffix(10).reversed()) { entry in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(entry.entityType.rawValue)
-                            .font(.caption.bold())
-                        Spacer()
-                        Text(entry.resolution)
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                    }
-                    Text(entry.entityId.uuidString.prefix(8) + "...")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text(entry.date, style: .relative)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
             }
         }
     }

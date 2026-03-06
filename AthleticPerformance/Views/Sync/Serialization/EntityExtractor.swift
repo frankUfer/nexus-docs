@@ -142,6 +142,9 @@ enum EntityExtractor {
         practiceData["city"] = addressData["city"]
         practiceData["country"] = addressData["country"]
 
+        let startAddrDict = encodeToDictionary(practice.startAddress)
+        practiceData["startAddress"] = AnyCodable(startAddrDict)
+
         entities.append(ExtractedEntity(
             entityType: .practice,
             entityId: practiceUUID,
