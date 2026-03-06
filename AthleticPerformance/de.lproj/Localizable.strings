@@ -790,11 +790,6 @@
 "syncStatusRateLimited" = "Zugriff begrenzt";
 "syncTestConnection" = "Verbindungstest";
 "syncTestButton" = "Verbindung testen";
-"syncResetSyncState" = "Sync-Status zurücksetzen";
-"syncResetSyncStateTitle" = "Sync-Status zurücksetzen?";
-"syncResetSyncStateMessage" = "Der Sync-Status wird zurückgesetzt und alle Daten werden erneut an den Server gesendet. Vorhandene Serverdaten werden überschrieben.";
-"syncResetSyncStateButton" = "Zurücksetzen & Synchronisieren";
-"syncResetSyncStateFooter" = "Setzt den Sync-Status zurück und sendet alle Daten erneut an den Server. Nützlich wenn Serverdaten verloren gegangen sind.";
 "syncResetProvisioning" = "Provisionierung zurücksetzen";
 "syncResetConfirmTitle" = "Provisionierung zurücksetzen?";
 "syncResetConfirmMessage" = "Die Gerätekonfiguration wird gelöscht. Das Gerät muss erneut per Kabel eingerichtet werden.";

@@ -790,11 +790,6 @@
 "syncStatusRateLimited" = "Rate limited";
 "syncTestConnection" = "Connection Test";
 "syncTestButton" = "Test Connection";
-"syncResetSyncState" = "Reset Sync State";
-"syncResetSyncStateTitle" = "Reset Sync State?";
-"syncResetSyncStateMessage" = "The sync state will be reset and all data will be re-sent to the server. Existing server data will be overwritten.";
-"syncResetSyncStateButton" = "Reset & Sync";
-"syncResetSyncStateFooter" = "Resets sync state and re-sends all data to the server. Useful when server data has been lost.";
 "syncResetProvisioning" = "Reset Provisioning";
 "syncResetConfirmTitle" = "Reset Provisioning?";
 "syncResetConfirmMessage" = "The device configuration will be cleared. The device must be re-provisioned via cable.";
