@@ -69,6 +69,14 @@ final class SyncStateStore: ObservableObject {
         try? data.write(to: stateFileURL, options: .atomic)
     }
 
+    func resetSyncState() {
+        state = SyncState()
+        saveState()
+        conflictLog = []
+        guard let data = try? JSONEncoder().encode(conflictLog) else { return }
+        try? data.write(to: conflictLogFileURL, options: .atomic)
+    }
+
     func addConflict(_ entry: ConflictLogEntry) {
         conflictLog.append(entry)
         // Keep last 100 entries

@@ -11,6 +11,7 @@ struct SyncStatusView: View {
     @State private var isTesting = false
     @State private var testResult: String?
     @State private var showResetConfirmation = false
+    @State private var showResetSyncConfirmation = false
 
     var body: some View {
         List {
@@ -33,6 +34,7 @@ struct SyncStatusView: View {
             authSection
 
             if deviceConfigStore.config.isProvisioned {
+                resetSyncSection
                 resetSection
             }
         }
@@ -49,6 +51,23 @@ struct SyncStatusView: View {
             }
         } message: {
             Text(NSLocalizedString("syncResetConfirmMessage", comment: "Reset message"))
+        }
+        .alert(
+            NSLocalizedString("syncResetSyncStateTitle", comment: "Reset sync state?"),
+            isPresented: $showResetSyncConfirmation
+        ) {
+            Button(NSLocalizedString("cancel", comment: "Cancel"), role: .cancel) {}
+            Button(NSLocalizedString("syncResetSyncStateButton", comment: "Reset & Sync"), role: .destructive) {
+                syncStateStore.resetSyncState()
+                _ = syncCoordinator.outboundQueue.dequeueAll()
+                isSyncing = true
+                Task {
+                    await syncCoordinator.fullSync()
+                    isSyncing = false
+                }
+            }
+        } message: {
+            Text(NSLocalizedString("syncResetSyncStateMessage", comment: "Reset sync state message"))
         }
     }
 
@@ -218,6 +237,19 @@ struct SyncStatusView: View {
                 Spacer()
                 authStatusBadge
             }
+        }
+    }
+
+    // MARK: - Reset Sync State
+
+    private var resetSyncSection: some View {
+        Section {
+            Button(NSLocalizedString("syncResetSyncState", comment: "Reset Sync State"), role: .destructive) {
+                showResetSyncConfirmation = true
+            }
+            .disabled(isSyncing)
+        } footer: {
+            Text(NSLocalizedString("syncResetSyncStateFooter", comment: "Reset sync state footer"))
         }
     }
 
