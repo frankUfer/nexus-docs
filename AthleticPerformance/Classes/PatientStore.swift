@@ -273,8 +273,8 @@ final class PatientStore: ObservableObject {
     /// and triggers sync change detection so the server gets corrected data.
     private func healAddressCoordinatesOnce() async {
         guard !UserDefaults.standard.bool(forKey: Self.healingDoneKey) else { return }
+        guard !patients.isEmpty else { return }
 
-        var healed = 0
         for patient in patients {
             let needsGeocode = patient.addresses.contains { !$0.value.hasCoordinates }
             guard needsGeocode else { continue }
@@ -283,7 +283,6 @@ final class PatientStore: ObservableObject {
             if geocoded != patient {
                 await savePatientAsync(geocoded)
                 onPatientChanged?(geocoded, patient)
-                healed += 1
             }
         }
 
