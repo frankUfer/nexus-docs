@@ -309,7 +309,33 @@ struct AnyCodable: Codable, Equatable {
     let value: Any
 
     init(_ value: Any) {
-        self.value = value
+        // Normalize NSNumber: JSONSerialization returns NSNumber for both bools
+        // and integers, and Swift pattern matching (`as Bool`) can't distinguish
+        // them. Use CFBooleanGetTypeID to detect true JSON booleans.
+        self.value = Self.normalize(value)
+    }
+
+    /// Recursively normalizes values from JSONSerialization so that numeric
+    /// NSNumbers are never misinterpreted as Bool.
+    private static func normalize(_ value: Any) -> Any {
+        switch value {
+        case let number as NSNumber:
+            if CFGetTypeID(number) == CFBooleanGetTypeID() {
+                return number.boolValue
+            } else if number is Double, floor(number.doubleValue) != number.doubleValue {
+                return number.doubleValue
+            } else if let int = number as? Int {
+                return int
+            } else {
+                return number.doubleValue
+            }
+        case let array as [Any]:
+            return array.map { normalize($0) }
+        case let dict as [String: Any]:
+            return dict.mapValues { normalize($0) }
+        default:
+            return value
+        }
     }
 
     init(from decoder: Decoder) throws {
@@ -335,6 +361,7 @@ struct AnyCodable: Codable, Equatable {
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
+        // Value is already normalized by init(_:), so Bool vs Int is reliable.
         switch value {
         case is NSNull:
             try container.encodeNil()

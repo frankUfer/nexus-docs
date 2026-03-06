@@ -778,8 +778,7 @@
 "syncQueuedChanges" = "Wartende Änderungen";
 "syncRecentConflicts" = "Letzte Konflikte";
 "syncIdle" = "Bereit";
-"syncPushing" = "Sende...";
-"syncPulling" = "Empfange...";
+"syncSyncing" = "Synchronisiere...";
 "syncStartSync" = "Synchronisation starten";
 "syncAuthentication" = "Authentifizierung";
 "syncAuthStatus" = "Status";

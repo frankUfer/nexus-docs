@@ -31,13 +31,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0108CAA42F57893500D0220C /* AthleticPerformance.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = AthleticPerformance.xcodeproj; sourceTree = "<group>"; };
+		011A51F02F57236100BFBA1B /* AthleticPerformance.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = AthleticPerformance.xcodeproj; sourceTree = "<group>"; };
+		017466162F41FA54002A82C0 /* AthleticPerformance.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = AthleticPerformance.xcodeproj; sourceTree = "<group>"; };
+		01A92A192F581DCE00697A82 /* AthleticPerformance.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = AthleticPerformance.xcodeproj; sourceTree = "<group>"; };
 		01C719592DF36ECA00C5B4FF /* AthleticPerformance.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AthleticPerformance.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		01C719662DF36ECB00C5B4FF /* AthleticPerformanceTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AthleticPerformanceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		01C719702DF36ECB00C5B4FF /* AthleticPerformanceUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AthleticPerformanceUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		0124484E2DF37C2900634A86 /* Exceptions for "AthleticPerformance" folder in "AthleticPerformance" target */ = {
+		0124484E2DF37C2900634A86 /* Exceptions for "." folder in "AthleticPerformance" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -47,22 +51,12 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		01C7195B2DF36ECA00C5B4FF /* AthleticPerformance */ = {
+		01C7195B2DF36ECA00C5B4FF /* . */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				0124484E2DF37C2900634A86 /* Exceptions for "AthleticPerformance" folder in "AthleticPerformance" target */,
+				0124484E2DF37C2900634A86 /* Exceptions for "." folder in "AthleticPerformance" target */,
 			);
 			path = .;
-			sourceTree = "<group>";
-		};
-		01C719692DF36ECB00C5B4FF /* AthleticPerformanceTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = AthleticPerformanceTests;
-			sourceTree = "<group>";
-		};
-		01C719732DF36ECB00C5B4FF /* AthleticPerformanceUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = AthleticPerformanceUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -96,6 +90,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0108CAA72F57893500D0220C /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		011A51F32F57236100BFBA1B /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
 		014DD08D2DF375A1002B37EF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -103,12 +107,20 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		017466192F41FA54002A82C0 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		01A92A1C2F581DCE00697A82 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
 		01C719502DF36ECA00C5B4FF = {
 			isa = PBXGroup;
 			children = (
-				01C7195B2DF36ECA00C5B4FF /* AthleticPerformance */,
-				01C719692DF36ECB00C5B4FF /* AthleticPerformanceTests */,
-				01C719732DF36ECB00C5B4FF /* AthleticPerformanceUITests */,
+				01C7195B2DF36ECA00C5B4FF /* . */,
 				014DD08D2DF375A1002B37EF /* Frameworks */,
 				01C7195A2DF36ECA00C5B4FF /* Products */,
 			);
@@ -140,7 +152,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				01C7195B2DF36ECA00C5B4FF /* AthleticPerformance */,
+				01C7195B2DF36ECA00C5B4FF /* . */,
 			);
 			name = AthleticPerformance;
 			packageProductDependencies = (
@@ -166,9 +178,6 @@
 			dependencies = (
 				01C719682DF36ECB00C5B4FF /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				01C719692DF36ECB00C5B4FF /* AthleticPerformanceTests */,
-			);
 			name = AthleticPerformanceTests;
 			packageProductDependencies = (
 			);
@@ -188,9 +197,6 @@
 			);
 			dependencies = (
 				01C719722DF36ECB00C5B4FF /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				01C719732DF36ECB00C5B4FF /* AthleticPerformanceUITests */,
 			);
 			name = AthleticPerformanceUITests;
 			packageProductDependencies = (
@@ -241,6 +247,24 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 01C7195A2DF36ECA00C5B4FF /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 0108CAA72F57893500D0220C /* Products */;
+					ProjectRef = 0108CAA42F57893500D0220C /* AthleticPerformance.xcodeproj */;
+				},
+				{
+					ProductGroup = 01A92A1C2F581DCE00697A82 /* Products */;
+					ProjectRef = 01A92A192F581DCE00697A82 /* AthleticPerformance.xcodeproj */;
+				},
+				{
+					ProductGroup = 017466192F41FA54002A82C0 /* Products */;
+					ProjectRef = 017466162F41FA54002A82C0 /* AthleticPerformance.xcodeproj */;
+				},
+				{
+					ProductGroup = 011A51F32F57236100BFBA1B /* Products */;
+					ProjectRef = 011A51F02F57236100BFBA1B /* AthleticPerformance.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				01C719582DF36ECA00C5B4FF /* AthleticPerformance */,

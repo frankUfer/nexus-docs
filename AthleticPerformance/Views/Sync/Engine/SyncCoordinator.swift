@@ -9,8 +9,7 @@ final class SyncCoordinator: ObservableObject {
 
     enum SyncStatus: Equatable {
         case idle
-        case pushing
-        case pulling
+        case syncing
         case error(String)
     }
 
@@ -173,6 +172,7 @@ final class SyncCoordinator: ObservableObject {
         await pushChanges()
         await pullChanges()
         syncStateStore.state.lastSyncAt = Date()
+        syncStateStore.state.pendingChangeCount = outboundQueue.count
         syncStateStore.saveState()
     }
 
@@ -340,7 +340,7 @@ final class SyncCoordinator: ObservableObject {
         let items = outboundQueue.items
         guard !items.isEmpty else { return }
 
-        status = .pushing
+        status = .syncing
 
         let pushChanges: [SyncPushChange] = items.map { item in
             SyncPushChange(
@@ -438,7 +438,12 @@ final class SyncCoordinator: ObservableObject {
     // MARK: - Pull
 
     func pullChanges() async {
-        status = .pulling
+        status = .syncing
+
+        // Temporarily disconnect patient change callback to prevent
+        // pulled changes from being re-enqueued into the outbound queue.
+        let savedCallback = patientStore?.onPatientChanged
+        patientStore?.onPatientChanged = nil
 
         do {
             var sinceVersion = syncStateStore.state.lastPullVersion
@@ -477,9 +482,11 @@ final class SyncCoordinator: ObservableObject {
             } else {
                 lastSyncResult = pullInfo
             }
+            patientStore?.onPatientChanged = savedCallback
             status = .idle
 
         } catch {
+            patientStore?.onPatientChanged = savedCallback
             status = .error("Pull failed: \(error.localizedDescription)")
         }
     }

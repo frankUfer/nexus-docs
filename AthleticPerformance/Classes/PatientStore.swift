@@ -30,7 +30,10 @@ final class PatientStore: ObservableObject {
             .appendingPathComponent("patients", isDirectory: true)
         try? FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
 
-        Task { await loadAllPatients() }
+        Task {
+            await loadAllPatients()
+            await healAddressCoordinatesOnce()
+        }
     }
 
     /// Returns the changes directory URL for a given patient.
@@ -90,14 +93,17 @@ final class PatientStore: ObservableObject {
             ]
         }
 
-        // 3) Publish
+        // 3) Geocode addresses missing coordinates
+        newValue = await geocodeAddressesIfNeeded(newValue)
+
+        // 4) Publish
         applyPatient(newValue)
 
-        // 4) Change-Log + Persist
+        // 5) Change-Log + Persist
         await handleDetectedChangesAsync(changes, for: newValue.id)
         await savePatientAsync(newValue)
 
-        // 5) Notify sync system
+        // 6) Notify sync system
         onPatientChanged?(newValue, oldDisk)
     }
 
@@ -144,25 +150,16 @@ final class PatientStore: ObservableObject {
             onPatientChanged?(newValue, oldDisk)
 
         } else {
-            Task.detached(priority: .utility) { [baseURL, snapshot, changes] in
-//                if !changes.isEmpty {
-//                    print("💾 [updatePatient async] Änderungen erkannt für Patient \(snapshot.fullName):")
-//                    for ch in changes {
-//                        print("   ▪️ \(ch.path)")
-//                        print("     alt: \(String(describing: ch.oldValue))")
-//                        print("     neu: \(String(describing: ch.newValue))")
-//                    }
-//                    print("   → \(changes.count) Änderungen werden asynchron gespeichert…")
-//                } else {
-//                    print("💾 [updatePatient async] Keine Änderungen für \(snapshot.fullName)")
-//                }
+            Task { [baseURL, snapshot, changes] in
+                let geocoded = await self.geocodeAddressesIfNeeded(snapshot)
 
-                await self.writeChangeLogSync(changes, patientId: snapshot.id, baseURL: baseURL)
-                await self.savePatientAsync(snapshot)
-                //print("✅ [updatePatient async] Patient asynchron gespeichert: \(snapshot.fullName) (\(snapshot.id))")
+                await Task.detached(priority: .utility) {
+                    await self.writeChangeLogSync(changes, patientId: geocoded.id, baseURL: baseURL)
+                    await self.savePatientAsync(geocoded)
+                }.value
 
                 // Notify sync system
-                await MainActor.run { self.onPatientChanged?(snapshot, oldDisk) }
+                self.onPatientChanged?(geocoded, oldDisk)
             }
         }
     }
@@ -170,9 +167,10 @@ final class PatientStore: ObservableObject {
     
     // MARK: - Add patient
     func addPatient(_ patient: Patient) async {
-        applyPatient(patient)
-        await savePatientAsync(patient)
-        onPatientChanged?(patient, nil)
+        let geocoded = await geocodeAddressesIfNeeded(patient)
+        applyPatient(geocoded)
+        await savePatientAsync(geocoded)
+        onPatientChanged?(geocoded, nil)
     }
 
     // MARK: - Delete patient
@@ -280,6 +278,52 @@ final class PatientStore: ObservableObject {
             //print("⚠️ loadPatientSync Fehler \(id): \(error)")
             return nil
         }
+    }
+
+    // MARK: - One-time address coordinate healing
+
+    private static let healingDoneKey = "PatientStore.addressCoordinatesHealed"
+
+    /// Runs once: geocodes all patient addresses missing coordinates, saves them,
+    /// and triggers sync change detection so the server gets corrected data.
+    private func healAddressCoordinatesOnce() async {
+        guard !UserDefaults.standard.bool(forKey: Self.healingDoneKey) else { return }
+
+        var healed = 0
+        for patient in patients {
+            let needsGeocode = patient.addresses.contains { !$0.value.hasCoordinates }
+            guard needsGeocode else { continue }
+
+            let geocoded = await geocodeAddressesIfNeeded(patient)
+            if geocoded != patient {
+                await savePatientAsync(geocoded)
+                onPatientChanged?(geocoded, patient)
+                healed += 1
+            }
+        }
+
+        UserDefaults.standard.set(true, forKey: Self.healingDoneKey)
+    }
+
+    // MARK: - Geocode missing coordinates
+
+    /// Geocodes any patient addresses that are missing coordinates.
+    /// Returns an updated patient with coordinates filled in where possible.
+    private func geocodeAddressesIfNeeded(_ patient: Patient) async -> Patient {
+        var updated = patient
+        var changed = false
+        for i in updated.addresses.indices {
+            guard !updated.addresses[i].value.hasCoordinates else { continue }
+            let geocoded = await GeocodingService.shared.geocodeIfNeeded(updated.addresses[i].value)
+            if geocoded.hasCoordinates {
+                updated.addresses[i].value = geocoded
+                changed = true
+            }
+        }
+        if changed {
+            applyPatient(updated)
+        }
+        return updated
     }
 
     // MARK: Save patient

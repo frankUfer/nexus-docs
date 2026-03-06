@@ -675,6 +675,7 @@ enum EntityExtractor {
 
     private static func extractSession(_ session: TreatmentSessions, patientId: UUID, therapyId: UUID, therapyPlanId: UUID) -> ExtractedEntity {
         var data = encodeToDictionary(session)
+        data.removeValue(forKey: "serialNumber") // runtime-only, not persisted
         data["patientId"] = AnyCodable(patientId.uuidString)
         data["therapyId"] = AnyCodable(therapyId.uuidString)
         data["therapyPlanId"] = AnyCodable(therapyPlanId.uuidString)

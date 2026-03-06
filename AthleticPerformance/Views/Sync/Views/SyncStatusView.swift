@@ -243,12 +243,8 @@ struct SyncStatusView: View {
             Label(NSLocalizedString("syncIdle", comment: "Idle"), systemImage: "checkmark.circle")
                 .foregroundStyle(.green)
                 .font(.caption)
-        case .pushing:
-            Label(NSLocalizedString("syncPushing", comment: "Pushing..."), systemImage: "arrow.up.circle")
-                .foregroundStyle(.blue)
-                .font(.caption)
-        case .pulling:
-            Label(NSLocalizedString("syncPulling", comment: "Pulling..."), systemImage: "arrow.down.circle")
+        case .syncing:
+            Label(NSLocalizedString("syncSyncing", comment: "Syncing..."), systemImage: "arrow.triangle.2.circlepath")
                 .foregroundStyle(.blue)
                 .font(.caption)
         case .error(let msg):
